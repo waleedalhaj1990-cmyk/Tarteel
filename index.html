@@ -696,13 +696,14 @@
         
         const score = words.length > 0 ? (matchCount / words.length) : 0;
         
-        if (score > bestMatch.score && score > 0.35) {
+        if (score > bestMatch.score && score > 0.7) {
           bestMatch = { index: i, score: score };
         }
       }
       
       if (bestMatch.index !== -1 && bestMatch.index !== lastDetectedAyahIndex) {
         lastDetectedAyahIndex = bestMatch.index;
+        
         nextAyahToPlay = bestMatch.index + 1;
         
         currentAyahIndex = bestMatch.index;
@@ -712,7 +713,7 @@
         progressBar.style.width = progress + '%';
         progressBar.textContent = progress + '%';
         
-        status.textContent = '✅ آية ' + currentSurahData.ayahs[bestMatch.index].number;
+        status.textContent = '✅ آية ' + currentSurahData.ayahs[bestMatch.index].number + ' - أكملت!';
       }
     }
     
@@ -779,6 +780,8 @@
         isPlayingInListenMode = false;
         
         if (!isListening) return;
+        
+        nextAyahToPlay = currentAyahIndex + 1;
         
         ayahText.textContent = 'أكمل القراءة...';
         ayahInfo.textContent = currentSurahData.name;
