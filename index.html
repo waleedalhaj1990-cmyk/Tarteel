@@ -55,11 +55,6 @@
       background: white;
       width: 100%;
     }
-    
-    #surahSelect {
-      position: relative;
-    }
-    
     .delay-control {
       display: flex;
       align-items: center;
@@ -275,7 +270,7 @@
           <option value="">السورة</option>
         </select>
         
-        <input type="number" id="startAyah" placeholder="آية #" min="1">
+        <input type="number" id="startAyah" placeholder="آية # (للتلاوة فقط)" min="1">
       </div>
       
       <select id="reciterSelect">
@@ -332,6 +327,7 @@
   <script>
     let recognition = null;
     let silenceTimer = null;
+    let silenceTimeout = null;
     let silenceCount = 10;
     let delaySeconds = 10;
     let isListening = false;
@@ -347,7 +343,7 @@
     let needBasmala = false;
     let isPlayingBasmala = false;
     let selectedReciter = 'ar.alafasy';
-    let hasReadCurrentAyah = false;
+    let lastMatchedAyahIndex = -1;
     
     const BASMALA_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
     
@@ -427,11 +423,12 @@
         };
         
         startAyahInput.max = currentSurahData.ayahs.length;
-        startAyahInput.placeholder = `1-${currentSurahData.ayahs.length}`;
+        startAyahInput.placeholder = `آية # (للتلاوة فقط)`;
         
         ayahCount.textContent = currentSurahData.ayahs.length;
         
         currentAyahIndex = 0;
+        lastMatchedAyahIndex = -1;
         displayCurrentAyah(false);
         status.textContent = 'جاهز';
         
@@ -476,7 +473,6 @@
       progressBar.textContent = progress + '%';
       
       currentWordIndex = 0;
-      hasReadCurrentAyah = false;
       
       ayahContainer.scrollTop = 0;
     }
@@ -507,10 +503,7 @@
       
       const targetScroll = relativeTop - (containerHeight * 0.25);
       
-      container.scrollTo({
-        top: Math.max(0, targetScroll),
-        behavior: 'smooth'
-      });
+      container.scrollTop = Math.max(0, targetScroll);
     }
     
     function startWordHighlighting(isBasmalaMode = false, isBlueHighlight = false) {
@@ -570,13 +563,13 @@
         return;
       }
       
-      const startFrom = parseInt(startAyahInput.value);
-      if (startFrom && startFrom >= 1 && startFrom <= currentSurahData.ayahs.length) {
-        currentAyahIndex = startFrom - 1;
-      }
+      // في وضع التسميع نبدأ من البداية دائماً
+      currentAyahIndex = 0;
+      lastMatchedAyahIndex = -1;
       
       basmalaDiv.style.display = 'none';
-      displayCurrentAyah(false);
+      ayahText.textContent = 'ابدأ القراءة من أي آية في السورة...';
+      ayahInfo.textContent = currentSurahData.name;
       
       if (!setupSpeechRecognition()) return;
       
@@ -591,7 +584,6 @@
       
       try {
         recognition.start();
-        resetSilenceTimer();
       } catch(e) {
         console.error('خطأ في بدء التعرف على الصوت:', e);
       }
@@ -623,8 +615,19 @@
             stopAudioAndReturnToListening();
           }
           
-          checkIfMatchesCurrentAyah(transcript);
-          resetSilenceTimer();
+          findMatchingAyah(transcript);
+          
+          // إلغاء المؤقت القديم وبدء جديد
+          clearTimeout(silenceTimeout);
+          clearInterval(silenceTimer);
+          timerDisplay.style.display = 'none';
+          
+          // بدء مؤقت جديد بعد 2 ثانية من التوقف
+          silenceTimeout = setTimeout(() => {
+            if (isListening && !isPlayingInListenMode) {
+              resetSilenceTimer();
+            }
+          }, 2000);
         }
       };
       
@@ -663,51 +666,56 @@
       });
       
       isPlayingInListenMode = false;
-      displayCurrentAyah(false);
+      
+      ayahText.textContent = 'أكمل القراءة...';
+      ayahInfo.textContent = currentSurahData.name;
       
       status.textContent = '🎤 استمع... أكمل القراءة';
       status.classList.add('listening');
       status.classList.remove('reciting');
-      
-      resetSilenceTimer();
     }
     
-    function checkIfMatchesCurrentAyah(transcript) {
-      if (!currentSurahData || currentAyahIndex >= currentSurahData.ayahs.length) return;
-      if (hasReadCurrentAyah) return;
+    function findMatchingAyah(transcript) {
+      if (!currentSurahData) return;
       
-      const currentAyah = currentSurahData.ayahs[currentAyahIndex];
       const cleanTranscript = transcript.replace(/[^\u0600-\u06FF\s]/g, '').trim();
-      const cleanAyahText = currentAyah.text.replace(/[^\u0600-\u06FF\s]/g, '').trim();
       
-      const words = cleanTranscript.split(/\s+/);
-      let matchCount = 0;
+      // البحث في جميع آيات السورة
+      let bestMatch = { index: -1, score: 0 };
       
-      for (let word of words) {
-        if (word.length > 2 && cleanAyahText.includes(word)) {
-          matchCount++;
+      for (let i = 0; i < currentSurahData.ayahs.length; i++) {
+        const ayah = currentSurahData.ayahs[i];
+        const cleanAyahText = ayah.text.replace(/[^\u0600-\u06FF\s]/g, '').trim();
+        
+        const words = cleanTranscript.split(/\s+/);
+        let matchCount = 0;
+        
+        for (let word of words) {
+          if (word.length > 2 && cleanAyahText.includes(word)) {
+            matchCount++;
+          }
+        }
+        
+        const score = words.length > 0 ? (matchCount / words.length) : 0;
+        
+        if (score > bestMatch.score && score > 0.3) {
+          bestMatch = { index: i, score: score };
         }
       }
       
-      if (words.length > 0 && (matchCount / words.length) > 0.4) {
-        hasReadCurrentAyah = true;
-        clearInterval(silenceTimer);
-        timerDisplay.style.display = 'none';
+      // إذا وجدنا تطابق جيد
+      if (bestMatch.index !== -1 && bestMatch.index !== lastMatchedAyahIndex) {
+        lastMatchedAyahIndex = bestMatch.index;
+        currentAyahIndex = bestMatch.index;
         
-        status.textContent = '✅ ممتاز!';
+        displayCurrentAyah(false);
         
-        setTimeout(() => {
+        status.textContent = '✅ آية ' + currentSurahData.ayahs[currentAyahIndex].number;
+        
+        // تحديث الآية التالية للتشغيل
+        if (currentAyahIndex < currentSurahData.ayahs.length - 1) {
           currentAyahIndex++;
-          
-          if (currentAyahIndex < currentSurahData.ayahs.length) {
-            displayCurrentAyah(false);
-            status.textContent = '🎤 استمع... اقرأ الآية التالية';
-            resetSilenceTimer();
-          } else {
-            status.textContent = '🎉 إكمال!';
-            stopAll();
-          }
-        }, 1500);
+        }
       }
     }
     
@@ -771,19 +779,11 @@
         
         if (!isListening) return;
         
-        currentAyahIndex++;
-        
-        if (currentAyahIndex < currentSurahData.ayahs.length) {
-          displayCurrentAyah(false);
-          status.textContent = '🎤 استمع... اقرأ الآية';
-          status.classList.add('listening');
-          status.classList.remove('reciting');
-          
-          resetSilenceTimer();
-        } else {
-          status.textContent = '🎉 إكمال!';
-          stopAll();
-        }
+        ayahText.textContent = 'أكمل القراءة...';
+        ayahInfo.textContent = currentSurahData.name;
+        status.textContent = '🎤 استمع... اقرأ الآية';
+        status.classList.add('listening');
+        status.classList.remove('reciting');
       };
       
       audioPlayer.onerror = function() {
@@ -791,11 +791,7 @@
         if (!isListening) return;
         
         status.textContent = 'خطأ';
-        currentAyahIndex++;
-        if (currentAyahIndex < currentSurahData.ayahs.length) {
-          displayCurrentAyah(false);
-          resetSilenceTimer();
-        }
+        ayahText.textContent = 'أكمل القراءة...';
       };
     }
     
@@ -808,6 +804,8 @@
       const startFrom = parseInt(startAyahInput.value);
       if (startFrom && startFrom >= 1 && startFrom <= currentSurahData.ayahs.length) {
         currentAyahIndex = startFrom - 1;
+      } else {
+        currentAyahIndex = 0;
       }
       
       needBasmala = (currentAyahIndex === 0 && currentSurahData.number != 9 && currentSurahData.number != 1);
@@ -919,8 +917,8 @@
       isRecitingFull = false;
       isPlayingBasmala = false;
       isPlayingInListenMode = false;
-      hasReadCurrentAyah = false;
       needBasmala = false;
+      lastMatchedAyahIndex = -1;
       
       if (recognition) {
         try {
@@ -935,6 +933,7 @@
       } catch(e) {}
       
       clearInterval(silenceTimer);
+      clearTimeout(silenceTimeout);
       
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
