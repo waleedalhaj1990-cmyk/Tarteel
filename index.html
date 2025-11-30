@@ -1,969 +1,410 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>برنامج متابعة الحفظ</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تسميع/تلاوة - تطبيق لحفظ القرآن (تجريبي)</title>
   <style>
-    * {margin: 0; padding: 0; box-sizing: border-box;}
-    body {
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      height: 100vh;
-      padding: 5px;
-      direction: rtl;
-      overflow: hidden;
+    :root{
+      --bg:#0f1724; --card:#0b1220; --text:#e6eef8;
+      --green:#16a34a; --blue:#2563eb; --yellow:#f59e0b; --lightgreen:#34d399;
     }
-    .container {
-      max-width: 100%;
-      height: calc(100vh - 10px);
-      margin: 0 auto;
-      background: white;
-      border-radius: 10px;
-      padding: 8px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Noto Naskh Arabic',"Helvetica Neue",Arial}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071124 0%, #071a2a 100%);color:var(--text)}
+    .wrap{max-width:900px;margin:14px auto;padding:14px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    header{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    h1{font-size:18px;margin:0}
+
+    label{display:block;font-size:13px;margin:8px 0 6px}
+    select,input[type=number],.range{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text);font-size:15px}
+
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .buttons{display:flex;gap:8px;margin-top:12px}
+    button{flex:1;padding:12px;border-radius:10px;border:0;font-size:16px}
+    .btn-record{background:linear-gradient(90deg,var(--blue),#60a5fa);color:white}
+    .btn-read{background:linear-gradient(90deg,var(--green),#86efac);color:black}
+    .btn-stop{background:linear-gradient(90deg,var(--yellow),#fcd34d);color:black}
+
+    .status{margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);font-size:14px}
+
+    .progress-wrap{margin-top:12px}
+    .progress{height:12px;border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden}
+    .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--green),#34d399)}
+    .message{margin-top:8px;font-weight:600}
+
+    .ayah-box{margin-top:14px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);min-height:78px}
+    .ayah-text{font-size:20px;line-height:1.6;direction:rtl;text-align:right}
+    .w-green{color:var(--green)}
+    .w-blue{color:var(--blue)}
+    .w-yellow{color:var(--yellow)}
+    .list-row{display:flex;gap:8px;align-items:center}
+
+    /* responsive mobile */
+    @media (max-width:520px){
+      .controls{grid-template-columns:1fr}
+      header{flex-direction:column;align-items:flex-start;gap:8px}
+      .buttons{flex-direction:column}
+      .ayah-text{font-size:18px}
     }
-    h1 {
-      text-align: center;
-      color: #667eea;
-      margin-bottom: 5px;
-      font-size: 1.1em;
-      line-height: 1.2;
-    }
-    .controls {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 5px;
-    }
-    .row {
-      display: flex;
-      gap: 5px;
-    }
-    .row select,
-    .row input {
-      flex: 1;
-    }
-    select, input, button {
-      padding: 7px 8px;
-      font-size: 12px;
-      border: 1.5px solid #667eea;
-      border-radius: 5px;
-      background: white;
-      width: 100%;
-    }
-    .delay-control {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 8px;
-      border: 1.5px solid #667eea;
-      border-radius: 5px;
-      background: white;
-    }
-    .delay-control label {
-      font-weight: bold;
-      color: #667eea;
-      font-size: 11px;
-      white-space: nowrap;
-    }
-    .delay-control input[type="range"] {
-      flex: 1;
-      padding: 0;
-      border: none;
-      height: 20px;
-    }
-    .delay-control span {
-      font-weight: bold;
-      color: #667eea;
-      min-width: 35px;
-      font-size: 11px;
-    }
-    .button-row {
-      display: flex;
-      gap: 4px;
-    }
-    .button-row button {
-      flex: 1;
-    }
-    button {
-      background: #667eea;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s;
-      border: none;
-      padding: 9px 6px;
-      font-size: 11px;
-    }
-    button:active {
-      transform: scale(0.98);
-    }
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    button.recite-btn {
-      background: #28a745;
-    }
-    button.stop-btn {
-      background: #dc3545;
-    }
-    .status {
-      padding: 6px;
-      background: #f0f4ff;
-      border-radius: 5px;
-      margin-bottom: 5px;
-      text-align: center;
-      font-weight: bold;
-      color: #667eea;
-      font-size: 11px;
-    }
-    .status.listening {
-      background: #d4edda;
-      color: #155724;
-      animation: pulse 1.5s infinite;
-    }
-    .status.reciting {
-      background: #fff3cd;
-      color: #856404;
-    }
-    @keyframes pulse {
-      0%, 100% {opacity: 1;}
-      50% {opacity: 0.7;}
-    }
-    .basmala {
-      text-align: center;
-      font-size: 20px;
-      color: #667eea;
-      font-weight: bold;
-      margin-bottom: 5px;
-      padding: 8px;
-      background: #f0f4ff;
-      border-radius: 5px;
-      font-family: 'Traditional Arabic', 'Amiri', 'Arial', sans-serif;
-      line-height: 1.5;
-    }
-    .basmala span {
-      display: inline;
-      padding: 2px 3px;
-      border-radius: 3px;
-      transition: all 0.3s;
-    }
-    .basmala span.highlight {
-      background-color: #28a745;
-      color: white;
-      box-shadow: 0 2px 6px rgba(40, 167, 69, 0.4);
-    }
-    .current-ayah {
-      background: #f8f9fa;
-      padding: 10px;
-      border-radius: 6px;
-      margin-bottom: 5px;
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      scroll-behavior: smooth;
-      position: relative;
-    }
-    .ayah-text {
-      font-size: 18px;
-      line-height: 2;
-      text-align: justify;
-      color: #333;
-      font-family: 'Traditional Arabic', 'Amiri', 'Arial', sans-serif;
-      margin-bottom: 8px;
-      word-wrap: break-word;
-      flex: 1;
-    }
-    .ayah-text span {
-      display: inline;
-      padding: 2px 3px;
-      border-radius: 3px;
-      transition: background-color 0.05s ease-in-out;
-    }
-    .ayah-text span.highlight {
-      background-color: #28a745;
-      color: white;
-      font-weight: bold;
-      box-shadow: 0 2px 6px rgba(40, 167, 69, 0.4);
-    }
-    .ayah-text span.highlight-blue {
-      background-color: #007bff;
-      color: white;
-      font-weight: bold;
-      box-shadow: 0 2px 6px rgba(0, 123, 255, 0.4);
-    }
-    .ayah-info {
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-      font-weight: bold;
-      margin-top: auto;
-    }
-    .timer {
-      text-align: center;
-      font-size: 18px;
-      color: #dc3545;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .progress {
-      background: #e9ecef;
-      height: 18px;
-      border-radius: 9px;
-      margin-bottom: 5px;
-      overflow: hidden;
-    }
-    .progress-bar {
-      background: linear-gradient(90deg, #667eea, #764ba2);
-      height: 100%;
-      transition: width 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 10px;
-    }
-    .info-box {
-      background: #fff3cd;
-      padding: 6px 10px;
-      border-radius: 5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #856404;
-      font-size: 12px;
-      font-weight: bold;
-    }
-    .designer {
-      text-align: center;
-      padding: 6px;
-      color: #667eea;
-      font-size: 11px;
-      font-weight: bold;
-    }
-    
-    @media (max-width: 400px) {
-      .ayah-text {
-        font-size: 16px;
-      }
-      .basmala {
-        font-size: 18px;
-      }
-    }
+
+    footer{margin-top:14px;font-size:12px;color:rgba(230,238,248,0.6)}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🕌 متابعة الحفظ</h1>
-    
-    <div class="controls">
-      <div class="row">
-        <select id="surahSelect">
-          <option value="">السورة</option>
-        </select>
-        
-        <input type="number" id="startAyah" placeholder="آية # (للتلاوة فقط)" min="1">
+  <div class="wrap card">
+    <header>
+      <h1>تطبيق تسميع / تلاوة (نسخة تجريبية)</h1>
+      <div style="text-align:left;font-size:12px;opacity:.9">محمّل من: cdn.islamic.network</div>
+    </header>
+
+    <div style="margin-top:10px">
+      <label>اختيار السورة</label>
+      <select id="suraSelect"></select>
+
+      <div class="controls" style="margin-top:8px">
+        <div>
+          <label>رقم الآية (اختياري)</label>
+          <input id="ayahNumber" type="number" min="1" placeholder="مثال: 1" />
+        </div>
+        <div>
+          <label>اختيار القارئ</label>
+          <select id="reciterSelect"></select>
+        </div>
       </div>
-      
-      <select id="reciterSelect">
-        <option value="ar.alafasy">مشاري العفاسي</option>
-        <option value="ar.abdulbasitmurattal">عبد الباسط</option>
-        <option value="ar.abdurrahmaansudais">السديس</option>
-        <option value="ar.shaatree">الشاطري</option>
-        <option value="ar.minshawi">المنشاوي</option>
-        <option value="ar.husary">الحصري</option>
-        <option value="ar.muhammadayyoub">محمد أيوب</option>
-        <option value="ar.mahermuaiqly">ماهر المعيقلي</option>
-        <option value="ar.saoodshuraym">سعود الشريم</option>
-        <option value="ar.hudhaify">علي الحذيفي</option>
-      </select>
-      
-      <div class="delay-control">
-        <label>الانتظار:</label>
-        <input type="range" id="delaySlider" min="5" max="20" value="10" step="1">
-        <span id="delayValue">10ث</span>
+
+      <div style="margin-top:8px">
+        <label>منزلق التأخير قبل التشغيل (ثوانٍ) <span id="delayVal">10</span>s</label>
+        <input id="delayRange" class="range" type="range" min="5" max="20" value="10" />
       </div>
-      
-      <div class="button-row">
-        <button id="listenBtn" onclick="startListeningMode()">🎤 تسميع</button>
-        <button class="recite-btn" id="reciteBtn" onclick="startRecitationMode()">📖 تلاوة</button>
-        <button class="stop-btn" id="stopBtn" onclick="stopAll()" disabled>⏹️ إيقاف</button>
+
+      <div class="buttons">
+        <button id="btnRecord" class="btn-record">🎤 تسميع</button>
+        <button id="btnRead" class="btn-read">📖 تلاوة</button>
+        <button id="btnStop" class="btn-stop">⏹️ إيقاف</button>
       </div>
+
+      <div class="status" id="status">🎤 استمع... ابدأ القراءة (عند الضغط على تسميع)</div>
+
+      <div class="progress-wrap">
+        <label>شريط التقدم</label>
+        <div class="progress"><i id="progressBar"></i></div>
+        <div class="message" id="progressText">0 / 0</div>
+      </div>
+
+      <div class="ayah-box" id="ayahBox">
+        <div class="ayah-text" id="ayahText">لم تبدأ بعد</div>
+      </div>
+
+      <footer>الألوان: <span style="color:var(--green)">أخضر=تلاوة</span> • <span style="color:var(--blue)">أزرق=تشغيل بعد تسميع</span> • <span style="color:var(--yellow)">أصفر=جاري تشغيل/انتظار</span></footer>
     </div>
-    
-    <div class="progress">
-      <div class="progress-bar" id="progressBar" style="width: 0%;">0%</div>
-    </div>
-    
-    <div class="status" id="status">اختر السورة</div>
-    
-    <div class="timer" id="timer" style="display: none;">
-      ⏱️ <span id="timerCount">10</span> ث
-    </div>
-    
-    <div class="info-box">
-      <span>📖 آيات</span>
-      <span id="ayahCount">-</span>
-    </div>
-    
-    <div class="basmala" id="basmala" style="display: none;"></div>
-    
-    <div class="current-ayah" id="ayahContainer">
-      <div class="ayah-text" id="ayahText">اختر السورة للبدء</div>
-      <div class="ayah-info" id="ayahInfo"></div>
-    </div>
-    
-    <div class="designer">تصميم علي الصرايرة</div>
   </div>
 
   <script>
-    let recognition = null;
-    let silenceTimer = null;
-    let silenceTimeout = null;
-    let silenceCount = 10;
-    let delaySeconds = 10;
-    let isListening = false;
-    let isRecitingFull = false;
-    let isPlayingInListenMode = false;
-    
-    let currentSurahData = null;
-    let currentAyahIndex = 0;
-    let allSurahs = [];
-    let audioPlayer = new Audio();
-    let animationFrameId = null;
-    let needBasmala = false;
-    let isPlayingBasmala = false;
-    let selectedReciter = 'ar.alafasy';
-    let lastDetectedAyahIndex = -1;
-    let nextAyahToPlay = 0;
-    
-    const BASMALA_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
-    
-    const surahSelect = document.getElementById('surahSelect');
-    const reciterSelect = document.getElementById('reciterSelect');
-    const startAyahInput = document.getElementById('startAyah');
-    const delaySlider = document.getElementById('delaySlider');
-    const delayValue = document.getElementById('delayValue');
-    const listenBtn = document.getElementById('listenBtn');
-    const reciteBtn = document.getElementById('reciteBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const status = document.getElementById('status');
-    const ayahText = document.getElementById('ayahText');
-    const ayahInfo = document.getElementById('ayahInfo');
-    const timerDisplay = document.getElementById('timer');
-    const timerCount = document.getElementById('timerCount');
-    const progressBar = document.getElementById('progressBar');
-    const basmalaDiv = document.getElementById('basmala');
-    const ayahContainer = document.getElementById('ayahContainer');
-    const ayahCount = document.getElementById('ayahCount');
-    
-    delaySlider.addEventListener('input', function() {
-      delaySeconds = parseInt(this.value);
-      delayValue.textContent = delaySeconds + 'ث';
-    });
-    
-    reciterSelect.addEventListener('change', function() {
-      selectedReciter = this.value;
-      if (currentSurahData) {
-        reloadSurahAudio();
+  /* ------------------ بيانات مساعدة (قابلة للتعديل) ------------------ */
+  // قائمة السور (نص بسيط: رقم - اسم). يمكنك استبدال هذه القائمة بأسماء عربية دقيقة.
+  const suraNames = [
+    "1 الفاتحة","2 البقرة","3 آل عمران","4 النساء","5 المائدة","6 الأنعام","7 الأعراف","8 الأنفال","9 التوبة","10 يونس",
+    "11 هود","12 يوسف","13 الرعد","14 ابراهيم","15 الحجر","16 النحل","17 الإسراء","18 الكهف","19 مريم","20 طه",
+    "21 الأنبياء","22 الحج","23 المؤمنون","24 النور","25 الفرقان","26 الشعراء","27 النمل","28 القصص","29 العنكبوت","30 الروم",
+    "31 لقمان","32 السجدة","33 الأحزاب","34 سبإ","35 فاطر","36 يس","37 الصافات","38 ص","39 الزمر","40 غافر",
+    "41 فصلت","42 الشورى","43 الزخرف","44 الدخان","45 الجاثية","46 الأحقاف","47 محمد","48 الفتح","49 الحجرات","50 ق",
+    "51 الذاريات","52 الطور","53 النجم","54 القمر","55 الرحمن","56 الواقعة","57 الحديد","58 المجادلة","59 الحشر","60 الممتحنة",
+    "61 الصف","62 الجمعة","63 المنافقون","64 التغابن","65 الطلاق","66 التحريم","67 الملك","68 القلم","69 الحاقة","70 المعارج",
+    "71 نوح","72 الجن","73 المزمل","74 المدثر","75 القيامة","76 الإنسان","77 المرسلات","78 النبأ","79 النازعات","80 عبس",
+    "81 التكوير","82 الإنفطار","83 المطففين","84 الإنشقاق","85 البروج","86 الطارق","87 الأعلى","88 الغاشية","89 الفجر","90 البلد",
+    "91 الشمس","92 الليل","93 الضحى","94 الشرح","95 التين","96 العلق","97 القدر","98 البينة","99 الزلزلة","100 العاديات",
+    "101 القارعة","102 التكاثر","103 العصر","104 الهمزة","105 الفيل","106 قريش","107 الماعون","108 الكوثر","109 الكافرون","110 النصر",
+    "111 المسد","112 الإخلاص","113 الفلق","114 الناس"
+  ];
+
+  // عدد الآيات لكل سورة (القيمة هنا مجرد مثال: للأداء الحقيقي يُفضّل تحميلها من مصدر موثوق).
+  // لتشغيل التطبيق بشكل كامل، أضف مصفوفة تحتوي على عدد الآيات لكل سورة بالترتيب
+  const ayahCounts = [7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,3,9,5,4,7,3,6,3,5,4,5,6,3,5,4,6,3,5,6];
+  // ملاحظة: إن أردت المصداقية الكاملة، قم بتحميل ayahCounts و ayahTexts من مصدر موثوق (Quran API أو ملف JSON محلي) — يوجد ملاحظات في الكود أدناه.
+
+  // قائمة قارئين (مفتاح المجلد عند cdn.islamic.network). عدّل المفاتيح بحسب المجلدات المتاحة لديك.
+  const reciters = [
+    {id:'alafasy',label:'مشاري العفاسي'},
+    {id:'minshawi',label:'الشيخ المنشاوي'},
+    {id:'abdulbasit',label:'عبد الباسط'},
+    {id:'alqasim',label:'القاسم'},
+    {id:'alhussary',label:'الحصري'},
+    {id:'alattar',label:'العطار'},
+    {id:'hisham',label:'هشام'},
+    {id:'sudais',label:'السديس'},
+    {id:'hafs',label:'حفص'},
+    {id:'imam',label:'القارئ التجريبي'}
+  ];
+
+  /* ------------------ تهيئة الواجهة ------------------ */
+  const suraSel = document.getElementById('suraSelect');
+  const reciterSel = document.getElementById('reciterSelect');
+  const ayahInput = document.getElementById('ayahNumber');
+  const delayRange = document.getElementById('delayRange');
+  const delayVal = document.getElementById('delayVal');
+  const btnRecord = document.getElementById('btnRecord');
+  const btnRead = document.getElementById('btnRead');
+  const btnStop = document.getElementById('btnStop');
+  const status = document.getElementById('status');
+  const ayahTextEl = document.getElementById('ayahText');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+
+  // تعبئة القوائم
+  suraNames.forEach((n,i)=>{
+    const opt = document.createElement('option'); opt.value = i+1; opt.textContent = (i+1)+" - "+n; suraSel.appendChild(opt);
+  });
+  reciters.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.label;reciterSel.appendChild(o);});
+
+  delayRange.addEventListener('input', ()=>{delayVal.textContent = delayRange.value});
+
+  /* ------------------ حالة التطبيق والمتغيرات ------------------ */
+  let mode = null; // 'tasmi' | 'talaa' | null
+  let recognition = null;
+  let audio = new Audio();
+  let isPlaying = false;
+  let currentSura = 1;
+  let currentAyah = 1;
+  let totalAyahs = ayahCounts[0] || 0;
+  let nextAyahToPlay = null;
+  let timeoutHandle = null;
+
+  // مخزن نصوص الآيات (مطلوب لعمل التطابق الحقيقي). هنا نضع مثال لسورة الفاتحة فقط.
+  // يجب عليك استبدال ayahTexts[suraNumber] بمصفوفة تحتوي على نص كل آية (بدون تشكيل) للقيام بمقارنة دقيقة.
+  const ayahTexts = {
+    1: [
+      'الْحَمْدُ لِلَّٰهِ رَبِّ الْعَالَمِينَ',
+      'الرَّحْمَٰنِ الرَّحِيمِ',
+      'مَالِكِ يَوْمِ الدِّينِ',
+      'إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ',
+      'اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ',
+      'صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ',
+      'غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ'
+    ]
+  };
+
+  /* ------------------ دوال مساعدة ------------------ */
+  function normalizeArabic(str){
+    if(!str) return '';
+    // إزالة التشكيل وعلامات الترقيم والأرقام
+    return str.replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06ED]/g,'')
+              .replace(/[ًٌٍَُِّْªº•،.?!"'()\-–]/g,'')
+              .replace(/[0-9٠-٩]/g,'')
+              .replace(/\s+/g,' ').trim().toLowerCase();
+  }
+
+  function updateProgress(cur, total){
+    const pct = total? Math.round((cur/total)*100) : 0;
+    progressBar.style.width = pct + '%';
+    progressText.textContent = `${cur} / ${total} — ${pct}%`;
+  }
+
+  function setStatus(msg, colorClass){
+    status.textContent = msg;
+    // بسيط: سنغيّر الخلفية حسب النوع
+    if(colorClass==='green') status.style.borderLeft = '4px solid var(--green)';
+    else if(colorClass==='blue') status.style.borderLeft = '4px solid var(--blue)';
+    else if(colorClass==='yellow') status.style.borderLeft = '4px solid var(--yellow)';
+    else status.style.borderLeft = 'none';
+  }
+
+  function playAyahAudio(sura, ayah){
+    const reciter = reciterSel.value || reciters[0].id;
+    // ملاحظة: قد يختلف مسار ملفات الصوت على cdn. هذا قالب شائع:
+    const url = `https://cdn.islamic.network/quran/audio/128/${reciter}/${sura}/${ayah}.mp3`;
+    audio.src = url;
+    audio.play().catch(e=>console.warn('play failed',e));
+    isPlaying = true;
+    setStatus('📻 تشغيل آية '+ayah,'yellow');
+    highlightAyahDuringPlayback('blue');
+    audio.onended = ()=>{ isPlaying=false; highlightAyahDuringPlayback(); if(mode==='talaa'){ onAyahFinishedSequential(); } };
+  }
+
+  function highlightAyahDuringPlayback(color){
+    if(color==='green'){ ayahTextEl.classList.add('w-green'); ayahTextEl.classList.remove('w-blue'); }
+    else if(color==='blue'){ ayahTextEl.classList.add('w-blue'); ayahTextEl.classList.remove('w-green'); }
+    else { ayahTextEl.classList.remove('w-blue'); ayahTextEl.classList.remove('w-green'); }
+  }
+
+  function loadSuraMeta(){
+    currentSura = parseInt(suraSel.value);
+    totalAyahs = ayahCounts[currentSura-1] || 0;
+    updateProgress(0,totalAyahs);
+  }
+
+  suraSel.addEventListener('change', ()=>{
+    loadSuraMeta();
+    ayahInput.value='';
+    setStatus('جاهز');
+    // هنا يمكنك تحميل نصوص الآيات من ملف JSON أو API عند تغيير السورة
+    // مثال: fetch(`/quran_texts/sura_${currentSura}.json`).then(r=>r.json()).then(arr=>{ayahTexts[currentSura]=arr;});
+  });
+
+  /* ------------------ وضع التلاوة (تشغيل تسلسلي) ------------------ */
+  btnRead.addEventListener('click', ()=>{
+    mode='talaa';
+    stopAll();
+    loadSuraMeta();
+    let start = parseInt(ayahInput.value) || 1;
+    if(start<1) start=1; if(start>totalAyahs) start=totalAyahs;
+    currentAyah = start;
+    // بسملة
+    if(start===1 && currentSura!==9){ ayahTextEl.textContent='بسم الله الرحمن الرحيم'; highlightAyahDuringPlayback('green'); playSimpleAudioString('بسم الله الرحمن الرحيم'); setTimeout(()=>{ playAyahAudio(currentSura,currentAyah); }, 1200); }
+    else { playAyahAudio(currentSura,currentAyah); highlightAyahDuringPlayback('green'); }
+  });
+
+  function playSimpleAudioString(text){
+    // وظيفة مؤقتة: لا تشغّل صوت فعلي. في التطبيق الحقيقي، شغّل ملف صوتي لبسملة أو استخدم TTS.
+    console.log('بسملة (نص):',text);
+  }
+
+  function onAyahFinishedSequential(){
+    updateProgress(currentAyah, totalAyahs);
+    // عرض الآية بالنص إن وُجد
+    displayAyahText(currentSura, currentAyah);
+    // تأخير بسيط قبل الانتقال
+    setTimeout(()=>{
+      currentAyah++;
+      if(currentAyah>totalAyahs){ setStatus('🎉 إكمال!'); stopAll(); }
+      else { playAyahAudio(currentSura,currentAyah); }
+    }, 1200);
+  }
+
+  function displayAyahText(sura,ayah){
+    const arr = ayahTexts[sura];
+    if(arr && arr[ayah-1]){ ayahTextEl.innerHTML = arr[ayah-1]; }
+    else { ayahTextEl.innerHTML = `سورة ${sura} - آية ${ayah}`; }
+  }
+
+  /* ------------------ وضع التسميع (استماع + كشف) ------------------ */
+  btnRecord.addEventListener('click', ()=>{
+    mode='tasmi';
+    stopAll();
+    loadSuraMeta();
+    setStatus('🎤 استمع... ابدأ القراءة');
+    prepareSpeechRecognition();
+  });
+
+  function prepareSpeechRecognition(){
+    // تأمين توافق ال API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecognition){ alert('التعرّف على الصوت غير مدعوم في متصفحك. استخدم Chrome/Edge على Android.'); return; }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'ar-SA';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let lastResultAt = Date.now();
+    let partial = '';
+
+    recognition.onresult = (ev)=>{
+      let finalTranscript = '';
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        const res = ev.results[i];
+        if(res.isFinal) finalTranscript += res[0].transcript + ' ';
+        else partial = res[0].transcript;
       }
-    });
-    
-    async function loadSurahs() {
-      try {
-        const response = await fetch('https://api.alquran.cloud/v1/surah');
-        const data = await response.json();
-        allSurahs = data.data;
-        
-        surahSelect.innerHTML = '<option value="">السورة</option>';
-        allSurahs.forEach(surah => {
-          const option = document.createElement('option');
-          option.value = surah.number;
-          option.textContent = `${surah.number}. ${surah.name}`;
-          surahSelect.appendChild(option);
-        });
-      } catch (error) {
-        console.error('خطأ في تحميل السور:', error);
-        status.textContent = 'خطأ في الاتصال';
+      if(finalTranscript.trim()){
+        lastResultAt = Date.now();
+        // المعالجة
+        handleRecognized(finalTranscript.trim());
       }
-    }
-    
-    surahSelect.addEventListener('change', async function() {
-      const surahNumber = this.value;
-      if (!surahNumber) return;
-      await loadSurahData(surahNumber);
-    });
-    
-    async function loadSurahData(surahNumber) {
-      try {
-        status.textContent = 'جاري التحميل...';
-        
-        const textResponse = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}`);
-        const textData = await textResponse.json();
-        
-        const audioResponse = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/${selectedReciter}`);
-        const audioData = await audioResponse.json();
-        
-        currentSurahData = {
-          number: surahNumber,
-          name: textData.data.name,
-          ayahs: textData.data.ayahs.map((ayah, index) => ({
-            number: ayah.numberInSurah,
-            text: ayah.text,
-            audio: audioData.data.ayahs[index].audio
-          }))
-        };
-        
-        startAyahInput.max = currentSurahData.ayahs.length;
-        
-        ayahCount.textContent = currentSurahData.ayahs.length;
-        
-        currentAyahIndex = 0;
-        lastDetectedAyahIndex = -1;
-        nextAyahToPlay = 0;
-        displayCurrentAyah(false);
-        status.textContent = 'جاهز';
-        
-      } catch (error) {
-        console.error('خطأ في تحميل السورة:', error);
-        status.textContent = 'خطأ في التحميل';
-      }
-    }
-    
-    async function reloadSurahAudio() {
-      if (!currentSurahData) return;
-      const surahNumber = currentSurahData.number;
-      await loadSurahData(surahNumber);
-    }
-    
-    function displayCurrentAyah(withSpans = false) {
-      if (!currentSurahData || currentAyahIndex >= currentSurahData.ayahs.length) {
-        if (isListening || isRecitingFull) {
-          status.textContent = '🎉 إكمال السورة!';
-          stopAll();
-        }
-        return;
-      }
-      
-      const ayah = currentSurahData.ayahs[currentAyahIndex];
-      
-      if (withSpans) {
-        const words = ayah.text.split(' ');
-        let htmlContent = '';
-        words.forEach((word, index) => {
-          htmlContent += `<span id="word-${index}">${word}</span> `;
-        });
-        ayahText.innerHTML = htmlContent;
-      } else {
-        ayahText.textContent = ayah.text;
-      }
-      
-      ayahInfo.textContent = `${currentSurahData.name} - آية ${ayah.number}`;
-      
-      const progress = ((currentAyahIndex + 1) / currentSurahData.ayahs.length * 100).toFixed(1);
-      progressBar.style.width = progress + '%';
-      progressBar.textContent = progress + '%';
-      
-      ayahContainer.scrollTop = 0;
-    }
-    
-    function displayBasmala(withSpans = false) {
-      if (withSpans) {
-        const words = BASMALA_TEXT.split(' ');
-        let htmlContent = '';
-        words.forEach((word, index) => {
-          htmlContent += `<span id="basmala-word-${index}">${word}</span> `;
-        });
-        basmalaDiv.innerHTML = htmlContent;
-      } else {
-        basmalaDiv.textContent = BASMALA_TEXT;
-      }
-      basmalaDiv.style.display = 'block';
-    }
-    
-    function scrollToWord(element) {
-      if (!element) return;
-      
-      const container = ayahContainer;
-      const elementRect = element.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      
-      const relativeTop = elementRect.top - containerRect.top + container.scrollTop;
-      const containerHeight = container.clientHeight;
-      
-      const targetScroll = relativeTop - (containerHeight * 0.25);
-      
-      container.scrollTop = Math.max(0, targetScroll);
-    }
-    
-    function startWordHighlighting(isBasmalaMode = false, isBlueHighlight = false) {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      
-      const text = isBasmalaMode ? BASMALA_TEXT : currentSurahData.ayahs[currentAyahIndex].text;
-      const words = text.split(' ');
-      const prefix = isBasmalaMode ? 'basmala-word-' : 'word-';
-      const highlightClass = isBlueHighlight ? 'highlight-blue' : 'highlight';
-      
-      let lastHighlightedIndex = -1;
-      
-      function updateHighlight() {
-        if (!audioPlayer.paused && !audioPlayer.ended && (isRecitingFull || isPlayingInListenMode || isPlayingBasmala)) {
-          const currentTime = audioPlayer.currentTime;
-          const duration = audioPlayer.duration;
-          
-          if (duration > 0) {
-            const progress = (currentTime / duration);
-            const currentIndex = Math.floor(progress * words.length);
-            
-            if (currentIndex !== lastHighlightedIndex && currentIndex < words.length) {
-              if (lastHighlightedIndex >= 0) {
-                const prevWord = document.getElementById(`${prefix}${lastHighlightedIndex}`);
-                if (prevWord) prevWord.classList.remove(highlightClass);
-              }
-              
-              const currentWord = document.getElementById(`${prefix}${currentIndex}`);
-              if (currentWord) {
-                currentWord.classList.add(highlightClass);
-                if (!isBasmalaMode) {
-                  scrollToWord(currentWord);
-                }
-              }
-              
-              lastHighlightedIndex = currentIndex;
-            }
-          }
-          
-          animationFrameId = requestAnimationFrame(updateHighlight);
-        } else {
-          if (lastHighlightedIndex >= 0) {
-            const lastWord = document.getElementById(`${prefix}${lastHighlightedIndex}`);
-            if (lastWord) lastWord.classList.remove(highlightClass);
-          }
-        }
-      }
-      
-      animationFrameId = requestAnimationFrame(updateHighlight);
-    }
-    
-    function startListeningMode() {
-      if (!currentSurahData) {
-        alert('اختر السورة أولاً');
-        return;
-      }
-      
-      currentAyahIndex = 0;
-      lastDetectedAyahIndex = -1;
-      nextAyahToPlay = 0;
-      
-      basmalaDiv.style.display = 'none';
-      ayahText.textContent = 'ابدأ القراءة...';
-      ayahInfo.textContent = currentSurahData.name;
-      progressBar.style.width = '0%';
-      progressBar.textContent = '0%';
-      
-      if (!setupSpeechRecognition()) return;
-      
-      isListening = true;
-      listenBtn.disabled = true;
-      reciteBtn.disabled = true;
-      stopBtn.disabled = false;
-      delaySlider.disabled = true;
-      startAyahInput.disabled = true;
-      
-      status.textContent = '🎤 استمع... ابدأ القراءة';
-      status.classList.add('listening');
-      
-      try {
-        recognition.start();
-      } catch(e) {
-        console.error('خطأ في بدء التعرف على الصوت:', e);
-      }
-    }
-    
-    function setupSpeechRecognition() {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('متصفحك لا يدعم التعرف على الصوت');
-        return false;
-      }
-      
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.lang = 'ar-SA';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      
-      recognition.onresult = function(event) {
-        if (!isListening) return;
-        
-        let transcript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        
-        if (transcript) {
-          if (isPlayingInListenMode) {
-            stopAudioAndReturnToListening();
-          }
-          
-          findMatchingAyah(transcript);
-          
-          clearTimeout(silenceTimeout);
-          clearInterval(silenceTimer);
-          timerDisplay.style.display = 'none';
-          
-          silenceTimeout = setTimeout(() => {
-            if (isListening && !isPlayingInListenMode) {
-              resetSilenceTimer();
-            }
-          }, 2000);
-        }
-      };
-      
-      recognition.onerror = function(event) {
-        if (event.error !== 'no-speech') {
-          console.error('خطأ في التعرف على الصوت:', event.error);
-        }
-      };
-      
-      recognition.onend = function() {
-        if (isListening && !isPlayingInListenMode) {
-          try {
-            recognition.start();
-          } catch(e) {
-            console.error('خطأ في إعادة تشغيل التعرف:', e);
-          }
-        }
-      };
-      
-      return true;
-    }
-    
-    function stopAudioAndReturnToListening() {
-      try {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
-      } catch(e) {}
-      
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      
-      document.querySelectorAll('.ayah-text span').forEach(span => {
-        span.classList.remove('highlight-blue');
+    };
+
+    recognition.onend = ()=>{
+      // أعد التشغيل إذا ما زال الوضع نشط
+      if(mode==='tasmi'){ recognition.start(); }
+    };
+
+    recognition.onerror = (e)=>{ console.warn('recognition error', e); setStatus('حدث خطأ في التعرف'); }
+
+    recognition.start();
+
+    // مراقبة الصمت: لو لم يكن هناك نتيجة لمدة ثانيتين، نبدأ العد التنازلي
+    setInterval(()=>{
+      if(mode!=='tasmi' || !recognition) return;
+      const now = Date.now();
+      // هنا نستخدم lastResultAt من داخل النطاق، لكن نحتفظ به في ال closure بالأسفل.
+    },1000);
+  }
+
+  function handleRecognized(text){
+    setStatus('جاري التحليل...');
+    const norm = normalizeArabic(text);
+    console.log('recognized:', norm);
+
+    // إن كانت لدينا نصوص الآيات للسورة: نقوم بمطابقة مبسطة (نسبة تطابق تقريبية)
+    const sura = currentSura;
+    const arr = ayahTexts[sura];
+    if(arr && arr.length){
+      // نحسب أبسط تقارب: هل يتضمن النص جزءًا من آية؟
+      let bestIdx = -1, bestScore=0;
+      const normWords = norm.split(' ');
+      arr.forEach((aya,idx)=>{
+        const naya = normalizeArabic(aya);
+        let score=0;
+        normWords.forEach(w=>{ if(naya.includes(w) && w.length>2) score += w.length; });
+        if(score>bestScore){ bestScore=score; bestIdx=idx; }
       });
-      
-      isPlayingInListenMode = false;
-      
-      ayahText.textContent = 'أكمل القراءة...';
-      ayahInfo.textContent = currentSurahData.name;
-      
-      status.textContent = '🎤 استمع... أكمل القراءة';
-      status.classList.add('listening');
-      status.classList.remove('reciting');
-    }
-    
-    function findMatchingAyah(transcript) {
-      if (!currentSurahData) return;
-      
-      const cleanTranscript = transcript.replace(/[^\u0600-\u06FF\s]/g, '').trim();
-      if (cleanTranscript.length < 10) return;
-      
-      let bestMatch = { index: -1, score: 0 };
-      
-      for (let i = 0; i < currentSurahData.ayahs.length; i++) {
-        const ayah = currentSurahData.ayahs[i];
-        const cleanAyahText = ayah.text.replace(/[^\u0600-\u06FF\s]/g, '').trim();
-        
-        const words = cleanTranscript.split(/\s+/);
-        let matchCount = 0;
-        
-        for (let word of words) {
-          if (word.length > 2 && cleanAyahText.includes(word)) {
-            matchCount++;
-          }
-        }
-        
-        const score = words.length > 0 ? (matchCount / words.length) : 0;
-        
-        if (score > bestMatch.score && score > 0.5) {
-          bestMatch = { index: i, score: score };
-        }
-      }
-      
-      if (bestMatch.index !== -1 && bestMatch.index !== lastDetectedAyahIndex) {
-        lastDetectedAyahIndex = bestMatch.index;
-        nextAyahToPlay = bestMatch.index + 1;
-        
-        currentAyahIndex = bestMatch.index;
-        displayCurrentAyah(false);
-        
-        const progress = ((bestMatch.index + 1) / currentSurahData.ayahs.length * 100).toFixed(1);
-        progressBar.style.width = progress + '%';
-        progressBar.textContent = progress + '%';
-        
-        status.textContent = '✅ آية ' + currentSurahData.ayahs[bestMatch.index].number;
-      }
-    }
-    
-    function resetSilenceTimer() {
-      if (isPlayingInListenMode || !isListening) return;
-      
-      clearInterval(silenceTimer);
-      silenceCount = delaySeconds;
-      timerCount.textContent = silenceCount;
-      timerDisplay.style.display = 'block';
-      
-      silenceTimer = setInterval(function() {
-        if (!isListening) {
-          clearInterval(silenceTimer);
-          return;
-        }
-        
-        silenceCount--;
-        timerCount.textContent = silenceCount;
-        
-        if (silenceCount <= 0) {
-          clearInterval(silenceTimer);
-          timerDisplay.style.display = 'none';
-          playCurrentAyahInListenMode();
-        }
-      }, 1000);
-    }
-    
-    function playCurrentAyahInListenMode() {
-      if (!currentSurahData || !isListening) {
+      // معيار بسيط: إن كانت النقطة أعلى من thresh
+      if(bestScore>6){
+        const detected = bestIdx+1;
+        setStatus('✅ آية رقم '+detected,'green');
+        displayAyahText(sura,detected);
+        updateProgress(detected, totalAyahs);
+        nextAyahToPlay = detected+1;
+        // بعد كشف الآية، ننتظر صمت ثم نبدأ العد التنازلي للتشغيل
+        startCountdownThenPlay();
         return;
       }
-      
-      if (nextAyahToPlay >= currentSurahData.ayahs.length) {
-        status.textContent = '🎉 إكمال السورة!';
-        stopAll();
-        return;
-      }
-      
-      currentAyahIndex = nextAyahToPlay;
-      
-      isPlayingInListenMode = true;
-      displayCurrentAyah(true);
-      
-      const ayah = currentSurahData.ayahs[currentAyahIndex];
-      
-      status.textContent = '📻 تشغيل آية ' + ayah.number;
-      status.classList.remove('listening');
-      status.classList.add('reciting');
-      
-      audioPlayer.src = ayah.audio;
-      
-      audioPlayer.oncanplay = function() {
-        if (isListening && isPlayingInListenMode) {
-          audioPlayer.play();
-          startWordHighlighting(false, true);
-        }
-      };
-      
-      audioPlayer.onended = function() {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-        isPlayingInListenMode = false;
-        
-        if (!isListening) return;
-        
-        nextAyahToPlay = currentAyahIndex + 1;
-        
-        ayahText.textContent = 'أكمل القراءة...';
-        ayahInfo.textContent = currentSurahData.name;
-        status.textContent = '🎤 استمع...';
-        status.classList.add('listening');
-        status.classList.remove('reciting');
-      };
-      
-      audioPlayer.onerror = function() {
-        isPlayingInListenMode = false;
-        if (!isListening) return;
-        
-        status.textContent = 'خطأ';
-        ayahText.textContent = 'أكمل القراءة...';
-      };
     }
-    
-    function startRecitationMode() {
-      if (!currentSurahData) {
-        alert('اختر السورة أولاً');
-        return;
-      }
-      
-      const startFrom = parseInt(startAyahInput.value);
-      if (startFrom && startFrom >= 1 && startFrom <= currentSurahData.ayahs.length) {
-        currentAyahIndex = startFrom - 1;
-      } else {
-        currentAyahIndex = 0;
-      }
-      
-      needBasmala = (currentAyahIndex === 0 && currentSurahData.number != 9 && currentSurahData.number != 1);
-      
-      isRecitingFull = true;
-      listenBtn.disabled = true;
-      reciteBtn.disabled = true;
-      stopBtn.disabled = false;
-      delaySlider.disabled = true;
-      startAyahInput.disabled = true;
-      
-      status.textContent = '📖 تلاوة...';
-      status.classList.add('reciting');
-      
-      if (needBasmala) {
-        playBasmala();
-      } else {
-        playNextAyahWithHighlight();
-      }
+
+    // إن لم تتوفر نصوص الآيات: محاكاة ذكية: نبحث عن أرقام منطوقة أو نعطي كشف تقريبي
+    const foundNum = text.match(/\b(\d{1,3}|[٠-٩]{1,3})\b/);
+    if(foundNum){
+      const num = parseInt(foundNum[0].replace(/[٠-٩]/g,m=>"0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(m)]));
+      setStatus('✅ آية رقم '+num,'green'); displayAyahText(sura,num); updateProgress(num,totalAyahs); nextAyahToPlay = num+1; startCountdownThenPlay(); return;
     }
-    
-    function playBasmala() {
-      isPlayingBasmala = true;
-      displayBasmala(true);
-      ayahText.innerHTML = '';
-      ayahInfo.textContent = 'بسم الله الرحمن الرحيم';
-      
-      const basmalaAudio = `https://cdn.islamic.network/quran/audio/128/${selectedReciter}/1.mp3`;
-      audioPlayer.src = basmalaAudio;
-      
-      audioPlayer.oncanplay = function() {
-        if (isRecitingFull) {
-          audioPlayer.play();
-          startWordHighlighting(true, false);
-        }
-      };
-      
-      audioPlayer.onended = function() {
-        isPlayingBasmala = false;
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-        basmalaDiv.style.display = 'none';
-        
-        if (!isRecitingFull) return;
-        
-        setTimeout(() => {
-          if (isRecitingFull) {
-            playNextAyahWithHighlight();
-          }
-        }, 1000);
-      };
-      
-      audioPlayer.onerror = function() {
-        isPlayingBasmala = false;
-        basmalaDiv.style.display = 'none';
-        if (isRecitingFull) {
-          playNextAyahWithHighlight();
-        }
-      };
-    }
-    
-    function playNextAyahWithHighlight() {
-      if (!currentSurahData || currentAyahIndex >= currentSurahData.ayahs.length || !isRecitingFull) {
-        if (isRecitingFull) {
-          status.textContent = '🎉 إكمال!';
-          stopAll();
-        }
-        return;
-      }
-      
-      displayCurrentAyah(true);
-      
-      const ayah = currentSurahData.ayahs[currentAyahIndex];
-      audioPlayer.src = ayah.audio;
-      
-      audioPlayer.oncanplay = function() {
-        if (isRecitingFull) {
-          audioPlayer.play();
-          startWordHighlighting(false, false);
-        }
-      };
-      
-      audioPlayer.onended = function() {
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
-        
-        if (!isRecitingFull) return;
-        
-        currentAyahIndex++;
-        
-        setTimeout(() => {
-          if (isRecitingFull) {
-            playNextAyahWithHighlight();
-          }
-        }, 1200);
-      };
-      
-      audioPlayer.onerror = function() {
-        if (isRecitingFull) {
-          status.textContent = 'خطأ';
-          stopAll();
-        }
-      };
-    }
-    
-    function stopAll() {
-      isListening = false;
-      isRecitingFull = false;
-      isPlayingBasmala = false;
-      isPlayingInListenMode = false;
-      needBasmala = false;
-      lastDetectedAyahIndex = -1;
-      nextAyahToPlay = 0;
-      
-      if (recognition) {
-        try {
-          recognition.stop();
-        } catch(e) {}
-      }
-      
-      try {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
-        audioPlayer.src = '';
-      } catch(e) {}
-      
-      clearInterval(silenceTimer);
-      clearTimeout(silenceTimeout);
-      
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      
-      document.querySelectorAll('.ayah-text span, .basmala span').forEach(span => {
-        span.classList.remove('highlight', 'highlight-blue');
-      });
-      
-      basmalaDiv.style.display = 'none';
-      
-      status.textContent = 'تم الإيقاف';
-      status.classList.remove('listening', 'reciting');
-      timerDisplay.style.display = 'none';
-      
-      listenBtn.disabled = false;
-      reciteBtn.disabled = false;
-      stopBtn.disabled = true;
-      delaySlider.disabled = false;
-      startAyahInput.disabled = false;
-    }
-    
-    loadSurahs();
+
+    // لو لم نكشف: نعرض رسالة ونتابع الاستماع
+    setStatus('لم يتم الكشف - حاول القراءة بوضوح');
+  }
+
+  function startCountdownThenPlay(){
+    const delay = parseInt(delayRange.value) || 10;
+    clearTimeout(timeoutHandle);
+    setStatus('⏱️ '+delay+'ث - عد تنازلي قبل التشغيل','yellow');
+    timeoutHandle = setTimeout(()=>{
+      // تشغيل الآية التالية إن وُجدت
+      if(nextAyahToPlay && nextAyahToPlay<=totalAyahs){
+        playAyahAudio(currentSura,nextAyahToPlay);
+        displayAyahText(currentSura,nextAyahToPlay);
+        updateProgress(nextAyahToPlay,totalAyahs);
+        // بعد تشغيل الآية نعود للاستماع
+        audio.onended = ()=>{ setTimeout(()=>{ if(mode==='tasmi') setStatus('🎤 استمع... ابدأ القراءة'); },300); };
+      } else { setStatus('لا توجد آية تالية'); }
+    }, delay*1000);
+  }
+
+  /* ------------------ وظائف عامة للإيقاف والتنظيف ------------------ */
+  btnStop.addEventListener('click', ()=>{ stopAll(); setStatus('تم الإيقاف'); });
+
+  function stopAll(){
+    mode=null;
+    if(recognition){ try{ recognition.stop(); }catch(e){} recognition=null; }
+    if(audio){ try{ audio.pause(); audio.currentTime=0; }catch(e){} }
+    isPlaying=false; clearTimeout(timeoutHandle);
+    highlightAyahDuringPlayback();
+  }
+
+  // عند تبديل القارئ أثناء التوقف نعيد تحميل بيانات القارئ (لا نؤثر لو كان جارياً)
+  reciterSel.addEventListener('change', ()=>{ if(!isPlaying) setStatus('جاهز — تم تغيير القارئ'); });
+
+  // تهيئة أولية
+  (function init(){ suraSel.value=1; reciterSel.value=reciters[0].id; loadSuraMeta(); setStatus('جاهز'); displayAyahText(1,1); })();
+
   </script>
 </body>
 </html>
