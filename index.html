@@ -131,7 +131,7 @@ const API = "https://api.alquran.cloud/v1";
 
 let surahs = [];
 let currentSurah = null;
-let ayahCounter = 0; // العداد البسيط
+let ayahCounter = 1; // نبدأ من 1 وليس 0
 let isActive = false;
 let recognition = null;
 let countdownTimer = null;
@@ -186,7 +186,7 @@ surahSelect.onchange = async () => {
     }))
   };
   
-  ayahCounter = 0;
+  ayahCounter = 1;
   ayahDiv.innerText = "جاهز للبدء";
   progressDiv.innerText = `${currentSurah.name} - ${currentSurah.ayahs.length} آية`;
   statusDiv.innerText = "✅ جاهز";
@@ -199,7 +199,7 @@ function start() {
   }
   
   isActive = true;
-  ayahCounter = 0;
+  ayahCounter = 1; // ابدأ من 1
   
   btnStart.disabled = true;
   btnStop.disabled = false;
@@ -207,7 +207,7 @@ function start() {
   waitSlider.disabled = true;
   
   statusDiv.className = 'status listening';
-  statusDiv.innerText = "🎤 استمع... اقرأ الآيات";
+  statusDiv.innerText = "🎤 استمع... اقرأ الآية 1";
   progressDiv.innerText = `العداد: ${ayahCounter}`;
   ayahDiv.innerText = "اقرأ الآية الأولى...";
   
@@ -229,8 +229,6 @@ function setupRecognition() {
   
   recognition.onresult = (e) => {
     if (!isActive) return;
-    
-    // صوت مكتشف - إعادة ضبط العداد
     resetSilenceTimer();
   };
   
@@ -261,7 +259,7 @@ function startSilenceTimer() {
     if (isActive) {
       startCountdown();
     }
-  }, 2000); // ثانيتين للتأكد من الصمت
+  }, 2000);
 }
 
 function resetSilenceTimer() {
@@ -300,10 +298,11 @@ function startCountdown() {
 function playNext() {
   if (!isActive || !currentSurah) return;
   
-  // الآية التي سنشغلها = العداد + 1
-  const nextAyahIndex = ayahCounter;
+  // الآية التي سنشغلها = ayahCounter (العداد نفسه)
+  // لأن ayahCounter يبدأ من 1، فـ ayahCounter - 1 = index
+  const ayahIndex = ayahCounter; // العداد الحالي = الآية التالية
   
-  if (nextAyahIndex >= currentSurah.ayahs.length) {
+  if (ayahIndex >= currentSurah.ayahs.length) {
     statusDiv.className = 'status';
     statusDiv.innerText = "🎉 اكتملت السورة!";
     ayahDiv.innerText = "مبارك! أتممت السورة";
@@ -313,11 +312,13 @@ function playNext() {
   
   try { recognition.stop(); } catch(e) {}
   
-  const ayah = currentSurah.ayahs[nextAyahIndex];
+  const ayah = currentSurah.ayahs[ayahIndex];
   
   statusDiv.className = 'status playing';
   statusDiv.innerText = `🔊 آية ${ayah.num}`;
   ayahDiv.innerText = ayah.text;
+  
+  console.log(`العداد: ${ayahCounter} | تشغيل index: ${ayahIndex} | رقم الآية: ${ayah.num}`);
   
   audio.src = ayah.audio;
   audio.play();
@@ -330,8 +331,8 @@ function playNext() {
     progressDiv.innerText = `العداد: ${ayahCounter} / ${currentSurah.ayahs.length}`;
     
     statusDiv.className = 'status listening';
-    statusDiv.innerText = "🎤 استمع... أكمل";
-    ayahDiv.innerText = `اقرأ الآية التالية (${ayahCounter + 1})...`;
+    statusDiv.innerText = `🎤 استمع... اقرأ آية ${ayahCounter}`;
+    ayahDiv.innerText = `اقرأ الآية ${ayahCounter}...`;
     
     try { 
       recognition.start();
