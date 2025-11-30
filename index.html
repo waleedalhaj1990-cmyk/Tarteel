@@ -336,14 +336,14 @@
     
     let currentSurahData = null;
     let currentAyahIndex = 0;
-    let currentWordIndex = 0;
     let allSurahs = [];
     let audioPlayer = new Audio();
     let animationFrameId = null;
     let needBasmala = false;
     let isPlayingBasmala = false;
     let selectedReciter = 'ar.alafasy';
-    let lastMatchedAyahIndex = -1;
+    let lastDetectedAyahIndex = -1;
+    let nextAyahToPlay = 0;
     
     const BASMALA_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
     
@@ -428,7 +428,8 @@
         ayahCount.textContent = currentSurahData.ayahs.length;
         
         currentAyahIndex = 0;
-        lastMatchedAyahIndex = -1;
+        lastDetectedAyahIndex = -1;
+        nextAyahToPlay = 0;
         displayCurrentAyah(false);
         status.textContent = 'جاهز';
         
@@ -471,8 +472,6 @@
       const progress = ((currentAyahIndex + 1) / currentSurahData.ayahs.length * 100).toFixed(1);
       progressBar.style.width = progress + '%';
       progressBar.textContent = progress + '%';
-      
-      currentWordIndex = 0;
       
       ayahContainer.scrollTop = 0;
     }
@@ -563,13 +562,15 @@
         return;
       }
       
-      // في وضع التسميع نبدأ من البداية دائماً
       currentAyahIndex = 0;
-      lastMatchedAyahIndex = -1;
+      lastDetectedAyahIndex = -1;
+      nextAyahToPlay = 0;
       
       basmalaDiv.style.display = 'none';
       ayahText.textContent = 'ابدأ القراءة من أي آية في السورة...';
       ayahInfo.textContent = currentSurahData.name;
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
       
       if (!setupSpeechRecognition()) return;
       
@@ -617,12 +618,10 @@
           
           findMatchingAyah(transcript);
           
-          // إلغاء المؤقت القديم وبدء جديد
           clearTimeout(silenceTimeout);
           clearInterval(silenceTimer);
           timerDisplay.style.display = 'none';
           
-          // بدء مؤقت جديد بعد 2 ثانية من التوقف
           silenceTimeout = setTimeout(() => {
             if (isListening && !isPlayingInListenMode) {
               resetSilenceTimer();
@@ -680,7 +679,6 @@
       
       const cleanTranscript = transcript.replace(/[^\u0600-\u06FF\s]/g, '').trim();
       
-      // البحث في جميع آيات السورة
       let bestMatch = { index: -1, score: 0 };
       
       for (let i = 0; i < currentSurahData.ayahs.length; i++) {
@@ -698,24 +696,23 @@
         
         const score = words.length > 0 ? (matchCount / words.length) : 0;
         
-        if (score > bestMatch.score && score > 0.3) {
+        if (score > bestMatch.score && score > 0.35) {
           bestMatch = { index: i, score: score };
         }
       }
       
-      // إذا وجدنا تطابق جيد
-      if (bestMatch.index !== -1 && bestMatch.index !== lastMatchedAyahIndex) {
-        lastMatchedAyahIndex = bestMatch.index;
-        currentAyahIndex = bestMatch.index;
+      if (bestMatch.index !== -1 && bestMatch.index !== lastDetectedAyahIndex) {
+        lastDetectedAyahIndex = bestMatch.index;
+        nextAyahToPlay = bestMatch.index + 1;
         
+        currentAyahIndex = bestMatch.index;
         displayCurrentAyah(false);
         
-        status.textContent = '✅ آية ' + currentSurahData.ayahs[currentAyahIndex].number;
+        const progress = ((bestMatch.index + 1) / currentSurahData.ayahs.length * 100).toFixed(1);
+        progressBar.style.width = progress + '%';
+        progressBar.textContent = progress + '%';
         
-        // تحديث الآية التالية للتشغيل
-        if (currentAyahIndex < currentSurahData.ayahs.length - 1) {
-          currentAyahIndex++;
-        }
+        status.textContent = '✅ آية ' + currentSurahData.ayahs[bestMatch.index].number;
       }
     }
     
@@ -745,20 +742,24 @@
     }
     
     function playCurrentAyahInListenMode() {
-      if (!currentSurahData || currentAyahIndex >= currentSurahData.ayahs.length || !isListening) {
-        if (isListening) {
-          status.textContent = '🎉 إكمال!';
-          stopAll();
-        }
+      if (!currentSurahData || !isListening) {
         return;
       }
+      
+      if (nextAyahToPlay >= currentSurahData.ayahs.length) {
+        status.textContent = '🎉 إكمال السورة!';
+        stopAll();
+        return;
+      }
+      
+      currentAyahIndex = nextAyahToPlay;
       
       isPlayingInListenMode = true;
       displayCurrentAyah(true);
       
       const ayah = currentSurahData.ayahs[currentAyahIndex];
       
-      status.textContent = '📻 تشغيل الآية...';
+      status.textContent = '📻 تشغيل آية ' + ayah.number;
       status.classList.remove('listening');
       status.classList.add('reciting');
       
@@ -781,7 +782,7 @@
         
         ayahText.textContent = 'أكمل القراءة...';
         ayahInfo.textContent = currentSurahData.name;
-        status.textContent = '🎤 استمع... اقرأ الآية';
+        status.textContent = '🎤 استمع... اقرأ الآية التالية';
         status.classList.add('listening');
         status.classList.remove('reciting');
       };
@@ -790,7 +791,7 @@
         isPlayingInListenMode = false;
         if (!isListening) return;
         
-        status.textContent = 'خطأ';
+        status.textContent = 'خطأ في التحميل';
         ayahText.textContent = 'أكمل القراءة...';
       };
     }
@@ -918,7 +919,8 @@
       isPlayingBasmala = false;
       isPlayingInListenMode = false;
       needBasmala = false;
-      lastMatchedAyahIndex = -1;
+      lastDetectedAyahIndex = -1;
+      nextAyahToPlay = 0;
       
       if (recognition) {
         try {
