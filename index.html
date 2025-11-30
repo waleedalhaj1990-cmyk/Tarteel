@@ -57,7 +57,6 @@
       justify-content: center;
     }
     .status.listening { background: #d4edda; color: #155724; }
-    .status.success { background: #d4edda; color: #155724; }
     .status.playing { background: #fff3cd; color: #856404; }
     .timer {
       font-size: 3rem;
@@ -76,13 +75,17 @@
       line-height: 2;
       text-align: center;
       margin-bottom: 15px;
-      min-height: 150px;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .progress { 
-      font-size: 0.9rem; 
+      font-size: 1rem; 
       color: #666; 
       text-align: center;
       margin-bottom: 10px;
+      font-weight: bold;
     }
     input[type="range"] {
       width: 100%;
@@ -94,17 +97,6 @@
       color: #667eea;
       margin-bottom: 5px;
       font-size: 0.9rem;
-    }
-    .debug {
-      background: #f0f0f0;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 0.8rem;
-      color: #333;
-      margin-top: 10px;
-      font-family: monospace;
-      max-height: 100px;
-      overflow-y: auto;
     }
   </style>
 </head>
@@ -129,11 +121,9 @@
     <span id="countdown">10</span>
   </div>
   
+  <div class="progress" id="progress">العداد: --</div>
+  
   <div class="ayah" id="ayah">...</div>
-  
-  <div class="progress" id="progress">الآية: -- / --</div>
-  
-  <div class="debug" id="debug">جاهز...</div>
 </div>
 
 <script>
@@ -141,17 +131,13 @@ const API = "https://api.alquran.cloud/v1";
 
 let surahs = [];
 let currentSurah = null;
-let lastDetectedAyahIndex = -1;
-let nextAyahToPlay = 0;
+let ayahCounter = 0; // العداد البسيط
 let isActive = false;
-let isPlaying = false;
 let recognition = null;
 let countdownTimer = null;
-let silenceCheckTimer = null;
+let silenceTimer = null;
 let waitSeconds = 10;
 let audio = new Audio();
-let voiceDetected = false;
-let silenceStarted = false;
 
 const surahSelect = document.getElementById('surahSelect');
 const waitSlider = document.getElementById('waitSlider');
@@ -163,13 +149,6 @@ const ayahDiv = document.getElementById('ayah');
 const progressDiv = document.getElementById('progress');
 const btnStart = document.getElementById('btnStart');
 const btnStop = document.getElementById('btnStop');
-const debugDiv = document.getElementById('debug');
-
-function log(msg) {
-  console.log(msg);
-  debugDiv.innerHTML += msg + '<br>';
-  debugDiv.scrollTop = debugDiv.scrollHeight;
-}
 
 fetch(`${API}/surah`).then(r => r.json()).then(data => {
   surahs = data.data;
@@ -179,7 +158,6 @@ fetch(`${API}/surah`).then(r => r.json()).then(data => {
     opt.text = `${s.number}. ${s.name}`;
     surahSelect.appendChild(opt);
   });
-  log('✅ تم تحميل السور');
 });
 
 waitSlider.oninput = () => {
@@ -192,7 +170,6 @@ surahSelect.onchange = async () => {
   if (!num) return;
   
   statusDiv.innerText = "📥 جاري التحميل...";
-  log(`📥 تحميل السورة ${num}...`);
   
   const textRes = await fetch(`${API}/surah/${num}`);
   const textData = await textRes.json();
@@ -209,24 +186,11 @@ surahSelect.onchange = async () => {
     }))
   };
   
-  lastDetectedAyahIndex = -1;
-  nextAyahToPlay = 0;
-  updateDisplay();
+  ayahCounter = 0;
+  ayahDiv.innerText = "جاهز للبدء";
+  progressDiv.innerText = `${currentSurah.name} - ${currentSurah.ayahs.length} آية`;
   statusDiv.innerText = "✅ جاهز";
-  log(`✅ تم تحميل ${currentSurah.name}`);
 };
-
-function updateDisplay() {
-  if (!currentSurah || nextAyahToPlay >= currentSurah.ayahs.length) {
-    ayahDiv.innerText = "...";
-    progressDiv.innerText = `الآية: -- / --`;
-    return;
-  }
-  
-  const ayah = currentSurah.ayahs[nextAyahToPlay];
-  ayahDiv.innerText = ayah.text;
-  progressDiv.innerText = `الآية المتوقعة: ${ayah.num} / ${currentSurah.ayahs.length}`;
-}
 
 function start() {
   if (!currentSurah) {
@@ -235,13 +199,7 @@ function start() {
   }
   
   isActive = true;
-  isPlaying = false;
-  lastDetectedAyahIndex = -1;
-  nextAyahToPlay = 0;
-  voiceDetected = false;
-  silenceStarted = false;
-  
-  updateDisplay();
+  ayahCounter = 0;
   
   btnStart.disabled = true;
   btnStop.disabled = false;
@@ -249,9 +207,9 @@ function start() {
   waitSlider.disabled = true;
   
   statusDiv.className = 'status listening';
-  statusDiv.innerText = "🎤 استمع... اقرأ الآية الأولى";
-  
-  log('🎤 بدء الاستماع...');
+  statusDiv.innerText = "🎤 استمع... اقرأ الآيات";
+  progressDiv.innerText = `العداد: ${ayahCounter}`;
+  ayahDiv.innerText = "اقرأ الآية الأولى...";
   
   setupRecognition();
 }
@@ -267,130 +225,69 @@ function setupRecognition() {
   recognition = new SpeechRecognition();
   recognition.lang = 'ar-SA';
   recognition.continuous = true;
-  recognition.interimResults = true;
-  
-  recognition.onstart = () => {
-    log('👂 الميكروفون يستمع');
-  };
+  recognition.interimResults = false;
   
   recognition.onresult = (e) => {
-    if (!isActive || isPlaying) return;
+    if (!isActive) return;
     
-    let text = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      text += e.results[i][0].transcript;
-    }
-    
-    if (text.trim().length > 3) {
-      voiceDetected = true;
-      
-      if (silenceStarted) {
-        log('🔄 إلغاء العداد - صوت مكتشف');
-        cancelCountdown();
-      }
-      
-      checkMatch(text);
-      resetSilenceCheck();
-    }
+    // صوت مكتشف - إعادة ضبط العداد
+    resetSilenceTimer();
   };
   
   recognition.onerror = (e) => {
     if (e.error !== 'no-speech') {
-      log(`❌ خطأ: ${e.error}`);
+      console.error(e.error);
     }
   };
   
   recognition.onend = () => {
-    if (isActive && !isPlaying) {
-      try { 
-        recognition.start(); 
-        log('🔄 إعادة تشغيل الميكروفون');
-      } catch(e) {}
+    if (isActive) {
+      try { recognition.start(); } catch(e) {}
     }
   };
   
   try {
     recognition.start();
+    startSilenceTimer();
   } catch(e) {
-    log(`❌ فشل بدء الميكروفون: ${e}`);
+    console.error(e);
   }
 }
 
-function checkMatch(text) {
-  if (!currentSurah) return;
+function startSilenceTimer() {
+  if (silenceTimer) clearTimeout(silenceTimer);
   
-  const clean = (s) => s.replace(/[^\u0600-\u06FF\s]/g, '')
-                        .replace(/(آ|إ|أ)/g, 'ا')
-                        .replace(/ة/g, 'ه')
-                        .replace(/ى/g, 'ي')
-                        .replace(/\s+/g, ' ')
-                        .trim();
-  
-  const input = clean(text);
-  const inputWords = input.split(' ').filter(w => w.length > 2);
-  
-  if (inputWords.length < 3) return;
-  
-  let bestMatch = { index: -1, score: 0 };
-  
-  for (let i = nextAyahToPlay; i < Math.min(nextAyahToPlay + 5, currentSurah.ayahs.length); i++) {
-    const expected = clean(currentSurah.ayahs[i].text);
-    
-    let matches = 0;
-    inputWords.forEach(word => {
-      if (expected.includes(word)) matches++;
-    });
-    
-    const score = matches / inputWords.length;
-    
-    if (score > bestMatch.score) {
-      bestMatch = { index: i, score: score };
-    }
-  }
-  
-  if (bestMatch.score >= 0.5 && bestMatch.index !== lastDetectedAyahIndex) {
-    lastDetectedAyahIndex = bestMatch.index;
-    nextAyahToPlay = bestMatch.index + 1;
-    
-    statusDiv.className = 'status success';
-    statusDiv.innerText = `✅ آية ${currentSurah.ayahs[bestMatch.index].num} صحيحة!`;
-    
-    log(`✅ كشف آية ${bestMatch.index} (${currentSurah.ayahs[bestMatch.index].num}) - النسبة: ${(bestMatch.score * 100).toFixed(0)}%`);
-    log(`➡️ التالية للتشغيل: ${nextAyahToPlay}`);
-    
-    updateDisplay();
-  }
-}
-
-function resetSilenceCheck() {
-  if (silenceCheckTimer) clearTimeout(silenceCheckTimer);
-  
-  silenceCheckTimer = setTimeout(() => {
-    if (isActive && !isPlaying && voiceDetected) {
-      log('🔇 صمت مكتشف - بدء العداد');
+  silenceTimer = setTimeout(() => {
+    if (isActive) {
       startCountdown();
     }
-  }, 2000);
+  }, 2000); // ثانيتين للتأكد من الصمت
+}
+
+function resetSilenceTimer() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    timerDiv.style.display = 'none';
+    statusDiv.className = 'status listening';
+    statusDiv.innerText = "🎤 استمع...";
+  }
+  
+  startSilenceTimer();
 }
 
 function startCountdown() {
-  if (silenceStarted) return;
-  
-  silenceStarted = true;
   timerDiv.style.display = 'block';
   
   let count = waitSeconds;
   countdownSpan.innerText = count;
   
   statusDiv.className = 'status';
-  statusDiv.innerText = `⏱️ انتظار... (${count} ث)`;
-  
-  log(`⏱️ بدء العداد: ${count}`);
+  statusDiv.innerText = `⏱️ ${count}ث`;
   
   countdownTimer = setInterval(() => {
     count--;
     countdownSpan.innerText = count;
-    statusDiv.innerText = `⏱️ انتظار... (${count} ث)`;
+    statusDiv.innerText = `⏱️ ${count}ث`;
     
     if (count <= 0) {
       clearInterval(countdownTimer);
@@ -400,82 +297,54 @@ function startCountdown() {
   }, 1000);
 }
 
-function cancelCountdown() {
-  silenceStarted = false;
-  
-  if (countdownTimer) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
-  }
-  
-  timerDiv.style.display = 'none';
-  
-  statusDiv.className = 'status listening';
-  statusDiv.innerText = "🎤 استمع... أكمل القراءة";
-}
-
 function playNext() {
   if (!isActive || !currentSurah) return;
   
-  if (nextAyahToPlay >= currentSurah.ayahs.length) {
-    statusDiv.className = 'status success';
+  // الآية التي سنشغلها = العداد + 1
+  const nextAyahIndex = ayahCounter;
+  
+  if (nextAyahIndex >= currentSurah.ayahs.length) {
+    statusDiv.className = 'status';
     statusDiv.innerText = "🎉 اكتملت السورة!";
-    log('🎉 اكتملت السورة!');
+    ayahDiv.innerText = "مبارك! أتممت السورة";
     stop();
     return;
   }
   
-  isPlaying = true;
+  try { recognition.stop(); } catch(e) {}
   
-  try { 
-    recognition.stop(); 
-    log('⏸️ إيقاف الميكروفون مؤقتاً');
-  } catch(e) {}
-  
-  const ayah = currentSurah.ayahs[nextAyahToPlay];
+  const ayah = currentSurah.ayahs[nextAyahIndex];
   
   statusDiv.className = 'status playing';
-  statusDiv.innerText = `🔊 تشغيل آية ${ayah.num}...`;
-  
-  log(`🔊 تشغيل آية ${nextAyahToPlay} (${ayah.num})`);
+  statusDiv.innerText = `🔊 آية ${ayah.num}`;
+  ayahDiv.innerText = ayah.text;
   
   audio.src = ayah.audio;
   audio.play();
   
   audio.onended = () => {
-    isPlaying = false;
-    voiceDetected = false;
-    silenceStarted = false;
-    
-    log('✅ انتهى التشغيل');
-    
     if (!isActive) return;
     
-    statusDiv.className = 'status listening';
-    statusDiv.innerText = `🎤 استمع... اقرأ آية ${currentSurah.ayahs[nextAyahToPlay].num}`;
+    // زيادة العداد
+    ayahCounter++;
+    progressDiv.innerText = `العداد: ${ayahCounter} / ${currentSurah.ayahs.length}`;
     
-    updateDisplay();
+    statusDiv.className = 'status listening';
+    statusDiv.innerText = "🎤 استمع... أكمل";
+    ayahDiv.innerText = `اقرأ الآية التالية (${ayahCounter + 1})...`;
     
     try { 
-      recognition.start(); 
-      log('🎤 عودة الاستماع');
+      recognition.start();
+      startSilenceTimer();
     } catch(e) {}
-  };
-  
-  audio.onerror = () => {
-    isPlaying = false;
-    log('❌ خطأ في التشغيل');
   };
 }
 
 function stop() {
   isActive = false;
-  isPlaying = false;
-  voiceDetected = false;
-  silenceStarted = false;
   
   if (countdownTimer) clearInterval(countdownTimer);
-  if (silenceCheckTimer) clearTimeout(silenceCheckTimer);
+  if (silenceTimer) clearTimeout(silenceTimer);
   if (recognition) try { recognition.stop(); } catch(e) {}
   
   audio.pause();
@@ -488,8 +357,6 @@ function stop() {
   btnStop.disabled = true;
   surahSelect.disabled = false;
   waitSlider.disabled = false;
-  
-  log('⏹️ تم الإيقاف');
 }
 </script>
 
