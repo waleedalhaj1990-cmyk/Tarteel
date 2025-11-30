@@ -310,7 +310,7 @@
     </div>
     
     <div class="info-box">
-      <span>📖 تلاوة</span>
+      <span>📖 آيات</span>
       <span id="ayahCount">-</span>
     </div>
     
@@ -423,7 +423,6 @@
         };
         
         startAyahInput.max = currentSurahData.ayahs.length;
-        startAyahInput.placeholder = `آية # (للتلاوة فقط)`;
         
         ayahCount.textContent = currentSurahData.ayahs.length;
         
@@ -567,7 +566,7 @@
       nextAyahToPlay = 0;
       
       basmalaDiv.style.display = 'none';
-      ayahText.textContent = 'ابدأ القراءة من أي آية في السورة...';
+      ayahText.textContent = 'ابدأ القراءة...';
       ayahInfo.textContent = currentSurahData.name;
       progressBar.style.width = '0%';
       progressBar.textContent = '0%';
@@ -579,6 +578,7 @@
       reciteBtn.disabled = true;
       stopBtn.disabled = false;
       delaySlider.disabled = true;
+      startAyahInput.disabled = true;
       
       status.textContent = '🎤 استمع... ابدأ القراءة';
       status.classList.add('listening');
@@ -678,6 +678,7 @@
       if (!currentSurahData) return;
       
       const cleanTranscript = transcript.replace(/[^\u0600-\u06FF\s]/g, '').trim();
+      if (cleanTranscript.length < 10) return;
       
       let bestMatch = { index: -1, score: 0 };
       
@@ -696,14 +697,13 @@
         
         const score = words.length > 0 ? (matchCount / words.length) : 0;
         
-        if (score > bestMatch.score && score > 0.7) {
+        if (score > bestMatch.score && score > 0.5) {
           bestMatch = { index: i, score: score };
         }
       }
       
       if (bestMatch.index !== -1 && bestMatch.index !== lastDetectedAyahIndex) {
         lastDetectedAyahIndex = bestMatch.index;
-        
         nextAyahToPlay = bestMatch.index + 1;
         
         currentAyahIndex = bestMatch.index;
@@ -713,7 +713,7 @@
         progressBar.style.width = progress + '%';
         progressBar.textContent = progress + '%';
         
-        status.textContent = '✅ آية ' + currentSurahData.ayahs[bestMatch.index].number + ' - أكملت!';
+        status.textContent = '✅ آية ' + currentSurahData.ayahs[bestMatch.index].number;
       }
     }
     
@@ -785,7 +785,7 @@
         
         ayahText.textContent = 'أكمل القراءة...';
         ayahInfo.textContent = currentSurahData.name;
-        status.textContent = '🎤 استمع... اقرأ الآية التالية';
+        status.textContent = '🎤 استمع...';
         status.classList.add('listening');
         status.classList.remove('reciting');
       };
@@ -794,7 +794,7 @@
         isPlayingInListenMode = false;
         if (!isListening) return;
         
-        status.textContent = 'خطأ في التحميل';
+        status.textContent = 'خطأ';
         ayahText.textContent = 'أكمل القراءة...';
       };
     }
@@ -819,6 +819,7 @@
       reciteBtn.disabled = true;
       stopBtn.disabled = false;
       delaySlider.disabled = true;
+      startAyahInput.disabled = true;
       
       status.textContent = '📖 تلاوة...';
       status.classList.add('reciting');
@@ -959,6 +960,7 @@
       reciteBtn.disabled = false;
       stopBtn.disabled = true;
       delaySlider.disabled = false;
+      startAyahInput.disabled = false;
     }
     
     loadSurahs();
