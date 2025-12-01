@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن</title>
+    <title>تسميع وتلاوة القرآن - نسخة نهائية</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
     <style>
@@ -224,6 +224,29 @@
             }
         }
 
+        .recognized-text-box {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            min-height: 2.5rem;
+            font-size: 0.85rem;
+            color: #bfdbfe;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .recognized-text-box.active {
+            display: block;
+        }
+
+        .recognized-label {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            margin-bottom: 0.2rem;
+        }
+
         .progress-wrapper {
             margin-top: 0.8rem;
         }
@@ -391,6 +414,11 @@
             <div id="statusMessage" class="status">جاهز لاختيار السورة</div>
         </div>
 
+        <div id="recognizedBox" class="recognized-text-box">
+            <div class="recognized-label">🎙️ النص المُتعرَّف عليه:</div>
+            <div id="recognizedText" style="color: #dbeafe;">جارِ الاستماع...</div>
+        </div>
+
         <div class="progress-wrapper">
             <div class="progress-bar">
                 <div id="progressInner" class="progress-bar-inner"></div>
@@ -410,13 +438,12 @@
         </div>
 
         <div class="footer-note">
-            يعتمد على Web Speech API (تعمل أفضل في متصفح كروم) وعلى خدمة alquran.cloud لنصوص وأصوات القرآن.
+            يعتمد على Web Speech API (كروم) • تأكد من منح صلاحية الميكروفون
         </div>
     </div>
 </div>
 
 <script>
-/* قائمة السور الكاملة (114 سورة) مُضمَّنة */
 const SURAHS = [
     {number:1,name:"الفاتحة",englishName:"Al-Faatiha",ayahs:7},
     {number:2,name:"البقرة",englishName:"Al-Baqara",ayahs:286},
@@ -555,6 +582,8 @@ const progressPercent = document.getElementById("progressPercent");
 const ayahLabel = document.getElementById("ayahLabel");
 const ayahTextBox = document.getElementById("ayahText");
 const modeBadge = document.getElementById("modeBadge");
+const recognizedBox = document.getElementById("recognizedBox");
+const recognizedText = document.getElementById("recognizedText");
 
 let mode = "idle";
 let currentSurah = null;
@@ -567,11 +596,16 @@ let countdownTimer = null;
 let countdownSeconds = 0;
 let currentAudio = null;
 let wordTimer = null;
+let waitingForNewRecognition = false; // FLAG للمنع من تكرار التشغيل
 
 function normalizeArabic(text) {
     if (!text) return "";
     let t = text;
     t = t.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
+    t = t.replace(/[إأآ]/g, "ا");
+    t = t.replace(/[ؤ]/g, "و");
+    t = t.replace(/[ئ]/g, "ي");
+    t = t.replace(/[ة]/g, "ه");
     t = t.replace(/ـ/g, "");
     t = t.replace(/[\d\u0660-\u0669]/g, "");
     t = t.replace(/[^\u0600-\u06FF\s]/g, " ");
@@ -582,6 +616,26 @@ function normalizeArabic(text) {
 function splitWords(text) {
     const clean = text.replace(/\s+/g, " ").trim();
     return clean ? clean.split(" ") : [];
+}
+
+function calculateSimilarity(text1, text2) {
+    const words1 = splitWords(normalizeArabic(text1));
+    const words2 = splitWords(normalizeArabic(text2));
+    
+    if (!words1.length || !words2.length) return 0;
+    
+    let matches = 0;
+    const set2 = new Set(words2);
+    
+    words1.forEach(w => {
+        if (set2.has(w)) matches++;
+    });
+    
+    const score1 = matches / words1.length;
+    const score2 = matches / words2.length;
+    const score3 = matches / Math.max(words1.length, words2.length);
+    
+    return Math.max(score1, score2, score3);
 }
 
 function loadSurahList() {
@@ -636,6 +690,7 @@ async function loadSurah(surahNumber) {
         currentSurah = surahNumber;
         currentAyahIndex = -1;
         nextAyahToPlayIndex = 0;
+        waitingForNewRecognition = false;
 
         updateProgress(0, ayahs.length);
         ayahLabel.textContent = "السورة جاهزة";
@@ -742,6 +797,12 @@ function playAyahAudio(index, playMode) {
 
     stopCurrentAudio();
 
+    // عند بدء التشغيل في وضع التسميع: نضع العلم false (لمنع إعادة التشغيل)
+    if (playMode === "tasmi") {
+        waitingForNewRecognition = false;
+        console.log("▶️ بدأ تشغيل الآية", ayah.numberInSurah, "- منع إعادة التشغيل حتى التعرف على آية جديدة");
+    }
+
     const audio = new Audio(ayah.audioUrl);
     currentAudio = audio;
 
@@ -753,6 +814,7 @@ function playAyahAudio(index, playMode) {
         setStatus(`📖 تلاوة آية ${ayah.numberInSurah}`, "strong");
         modeBadge.textContent = "وضع التلاوة";
         modeBadge.className = "mode-badge mode-badge-tilawa";
+        updateProgress(ayah.numberInSurah, ayahs.length);
     } else {
         setStatus(`📻 تشغيل آية ${ayah.numberInSurah}`, "info");
         modeBadge.textContent = "وضع التسميع (تشغيل)";
@@ -776,14 +838,17 @@ function playAyahAudio(index, playMode) {
                         mode = "idle";
                         enableMainControls(true);
                     } else {
-                        updateProgress(currentAyahIndex + 1, ayahs.length);
                         playAyahAudio(currentAyahIndex, "tilawa");
                     }
                 }
             }, 1200);
         } else if (playMode === "tasmi") {
+            // بعد انتهاء التشغيل في التسميع، يعود للاستماع
             if (mode === "tasmi") {
-                startRecognition();
+                console.log("✅ انتهى تشغيل الآية - العودة للاستماع");
+                setTimeout(() => {
+                    startRecognition();
+                }, 500);
             }
         }
     });
@@ -802,6 +867,7 @@ function startTilawa() {
     enableMainControls(false);
     ayahInput.disabled = false;
     listeningDot.classList.remove("active");
+    recognizedBox.classList.remove("active");
 
     const total = ayahs.length;
     let startIndex = 0;
@@ -812,11 +878,12 @@ function startTilawa() {
     }
 
     currentAyahIndex = startIndex;
-    updateProgress(currentAyahIndex, total);
 
     if (currentSurah !== "9" && currentAyahIndex === 0) {
+        updateProgress(0, total);
         playBasmalaThenFirstAyah();
     } else {
+        updateProgress(currentAyahIndex + 1, total);
         playAyahAudio(currentAyahIndex, "tilawa");
     }
 }
@@ -837,6 +904,8 @@ function playBasmalaThenFirstAyah() {
     setStatus("تشغيل البسملة...", "strong");
     modeBadge.textContent = "وضع التلاوة";
     modeBadge.className = "mode-badge mode-badge-tilawa";
+    
+    updateProgress(0, ayahs.length);
 
     audio.play().catch(e => {
         console.error(e);
@@ -847,6 +916,7 @@ function playBasmalaThenFirstAyah() {
     audio.addEventListener("ended", () => {
         setTimeout(() => {
             if (mode === "tilawa") {
+                updateProgress(1, ayahs.length);
                 playAyahAudio(currentAyahIndex, "tilawa");
             }
         }, 1000);
@@ -865,6 +935,7 @@ function initRecognition() {
     rec.lang = "ar-SA";
     rec.continuous = true;
     rec.interimResults = true;
+    rec.maxAlternatives = 3;
     return rec;
 }
 
@@ -886,12 +957,18 @@ function startTasmi() {
     enableMainControls(false);
     ayahInput.disabled = true;
     listeningDot.classList.add("active");
+    recognizedBox.classList.add("active");
+    recognizedText.textContent = "جارِ الاستماع...";
+    
     modeBadge.textContent = "وضع التسميع (استماع)";
     modeBadge.className = "mode-badge mode-badge-tasmi";
 
-    nextAyahToPlayIndex = 0;
+    // البداية: ننتظر قراءة الآية 1، وسنشغل الآية 1 إذا لم يقرأ (عند انتهاء العد)
+    nextAyahToPlayIndex = 0; // سنشغل الآية 1 (index 0)
+    waitingForNewRecognition = true; // نسمح ببدء العد التنازلي
     updateProgress(0, ayahs.length);
 
+    console.log("🎤 بدأ وضع التسميع - بانتظار القراءة");
     startRecognition();
 }
 
@@ -915,8 +992,11 @@ function startRecognition() {
             console.error("speech error", event);
             if (event.error === "not-allowed") {
                 setStatus("تم رفض صلاحية الميكروفون. فعّلها من إعدادات المتصفح.", "error");
+                recognizedText.textContent = "❌ الميكروفون غير مفعّل";
+            } else if (event.error === "no-speech") {
+                recognizedText.textContent = "⚠️ لم يتم اكتشاف صوت";
             } else {
-                setStatus("خطأ في التعرف على الصوت، سيحاول البرنامج مرة أخرى.", "error");
+                setStatus("خطأ في التعرف على الصوت.", "warn");
             }
         };
 
@@ -924,20 +1004,31 @@ function startRecognition() {
             recognizing = false;
             listeningDot.classList.remove("active");
             if (mode === "tasmi") {
+                // يبدأ العد التنازلي فقط إذا كنا بانتظار تعرف جديد
                 startCountdown();
             }
         };
 
         recognition.onresult = (event) => {
+            let interimTranscript = "";
             let finalTranscript = "";
+            
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 const res = event.results[i];
                 if (res.isFinal) {
                     finalTranscript += res[0].transcript;
+                } else {
+                    interimTranscript += res[0].transcript;
                 }
             }
-            finalTranscript = finalTranscript.trim();
+            
+            if (interimTranscript) {
+                recognizedText.textContent = "🎙️ " + interimTranscript;
+            }
+            
             if (finalTranscript) {
+                finalTranscript = finalTranscript.trim();
+                recognizedText.textContent = "✅ " + finalTranscript;
                 processRecognizedText(finalTranscript);
             }
         };
@@ -946,7 +1037,7 @@ function startRecognition() {
     try {
         recognition.start();
     } catch (e) {
-        // تجاهل
+        console.warn("Recognition already started", e);
     }
 }
 
@@ -961,12 +1052,20 @@ function stopRecognition() {
 }
 
 function startCountdown() {
+    // فقط نبدأ العد إذا كنا بانتظار تعرف جديد
+    if (!waitingForNewRecognition) {
+        console.log("⏸️ تم منع العد التنازلي - لم يتم التعرف على آية جديدة بعد");
+        return;
+    }
+
     cancelCountdown();
     if (mode !== "tasmi") return;
+    
     const delaySec = parseInt(delayRange.value, 10) || 10;
     countdownSeconds = delaySec;
 
     setStatus(`⏱️ ${countdownSeconds}ث عد تنازلي قبل التشغيل`, "warn");
+    console.log(`⏱️ بدأ العد التنازلي ${countdownSeconds} ثانية`);
 
     countdownTimer = setInterval(() => {
         countdownSeconds--;
@@ -976,13 +1075,15 @@ function startCountdown() {
             cancelCountdown();
             if (mode === "tasmi") {
                 if (nextAyahToPlayIndex >= 0 && nextAyahToPlayIndex < ayahs.length) {
+                    console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${nextAyahToPlayIndex + 1}`);
                     playAyahAudio(nextAyahToPlayIndex, "tasmi");
                 } else {
-                    setStatus("🎉 يبدو أنك أكملت السورة في التسميع.", "done");
+                    setStatus("🎉 مبروك! أكملت السورة.", "done");
                     modeBadge.textContent = "مكتمل";
                     updateProgress(ayahs.length, ayahs.length);
                     mode = "idle";
                     enableMainControls(true);
+                    recognizedBox.classList.remove("active");
                 }
             }
         }
@@ -1002,39 +1103,51 @@ function processRecognizedText(text) {
     const normInput = normalizeArabic(text);
     if (!normInput) return;
 
-    const inputWords = splitWords(normInput);
-    if (!inputWords.length) return;
+    console.log("🎤 النص المُتعرَّف عليه:", text);
+    console.log("🔍 النص المُعالج:", normInput);
 
     let bestScore = 0;
     let bestIndex = -1;
+    let debugInfo = [];
 
     ayahs.forEach((a, idx) => {
-        const ayahWords = splitWords(a.normalizedText);
-        if (!ayahWords.length) return;
-
-        let matches = 0;
-        const ayahWordSet = new Set(ayahWords);
-        inputWords.forEach(w => {
-            if (ayahWordSet.has(w)) matches++;
+        const score = calculateSimilarity(normInput, a.text);
+        
+        debugInfo.push({
+            ayah: idx + 1,
+            score: (score * 100).toFixed(1) + "%"
         });
 
-        const score = matches / Math.max(ayahWords.length, inputWords.length);
         if (score > bestScore) {
             bestScore = score;
             bestIndex = idx;
         }
     });
 
-    if (bestIndex >= 0 && bestScore >= 0.5) {
+    console.table(debugInfo.sort((a, b) => parseFloat(b.score) - parseFloat(a.score)).slice(0, 5));
+
+    if (bestIndex >= 0 && bestScore >= 0.30) {
         const ayah = ayahs[bestIndex];
+        
         setStatus(`✅ آية رقم ${ayah.numberInSurah} (تطابق ${(bestScore * 100).toFixed(0)}%)`, "strong");
+        
+        recognizedText.innerHTML = `<div style="color: #4ade80;">✅ تم التعرف على الآية ${ayah.numberInSurah}</div><div style="font-size: 0.75rem; margin-top: 0.2rem; color: #9ca3af;">${ayah.text.substring(0, 80)}...</div>`;
 
         updateProgress(ayah.numberInSurah, ayahs.length);
 
-        const next = bestIndex + 1;
-        nextAyahToPlayIndex = next < ayahs.length ? next : ayahs.length;
+        // حجز الآية التالية + السماح ببدء العد التنازلي
+        nextAyahToPlayIndex = bestIndex + 1;
+        waitingForNewRecognition = true;
+        
+        console.log(`✅ تعرف على الآية ${ayah.numberInSurah} - الآية التالية: ${nextAyahToPlayIndex < ayahs.length ? nextAyahToPlayIndex + 1 : 'اكتمال'}`);
+        
+        // إلغاء أي عد سابق
+        cancelCountdown();
     } else {
-        setStatus("لم يتم التعرف على آية بوضوح. حاول مرة أخرى.", "error");
+        const msg = `⚠️ تطابق ضعيف (${(bestScore * 100).toFixed(0)}%). حاول القراءة بوضوح أكثر.`;
+        setStatus(msg, "error");
+        recognizedText.innerHTML = `<div style="color: #f87171;">${msg}</div>`;
+        console.warn("❌ لم يتم التعرف - أفضل تطابق:", (bestScore * 100).toFixed(1) + "%");
     }
 }
 
@@ -1108,6 +1221,7 @@ btnStop.addEventListener("click", () => {
     ayahInput.disabled = false;
 
     listeningDot.classList.remove("active");
+    recognizedBox.classList.remove("active");
     modeBadge.textContent = "وضع غير مفعّل";
     modeBadge.className = "mode-badge";
 
