@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>تسميع وتلاوة القرآن</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
     <style>
         :root {
             --bg: #050b10;
             --card-bg: #111827;
-            --accent: #22c55e;      /* أخضر */
-            --accent-light: #4ade80;/* أخضر فاتح (استماع) */
-            --accent-blue: #3b82f6; /* أزرق (تشغيل في التسميع) */
-            --accent-yellow: #eab308;/* أصفر (انتظار / جاري التشغيل) */
+            --accent: #22c55e;
+            --accent-light: #4ade80;
+            --accent-blue: #3b82f6;
+            --accent-yellow: #eab308;
             --text-main: #f9fafb;
             --text-sub: #9ca3af;
             --border: #1f2933;
@@ -122,7 +122,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.25rem;
-            transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease, opacity 0.1s ease;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
 
         .btn span.emoji {
@@ -338,38 +338,42 @@
         <h1>مساعد تسميع وتلاوة القرآن</h1>
         <div class="subtitle">يسمع قراءتك 🎤 ويشغّل لك الآية التالية 📖 تلقائياً</div>
 
-        <!-- عناصر التحكم الرئيسية -->
         <div class="row">
             <div class="field">
                 <label for="surahSelect">السورة (إجباري)</label>
                 <select id="surahSelect">
                     <option value="">اختر السورة...</option>
-                    <!-- سيتم تحميل 114 سورة من API -->
                 </select>
             </div>
 
             <div class="field-half">
                 <label for="ayahInput">رقم الآية (للتلاوة فقط)</label>
-                <input id="ayahInput" type="number" min="1" placeholder="مثلاً: 1" />
+                <input id="ayahInput" type="number" min="1" placeholder="مثلاً: 1">
             </div>
 
             <div class="field-half">
                 <label for="reciterSelect">اختيار القارئ</label>
                 <select id="reciterSelect">
-                    <!-- تأكد من صحة الأكواد من وثائق API alquran.cloud -->
                     <option value="ar.alafasy">مشاري العفاسي</option>
-                    <!-- يمكنك إضافة حتى 10 قرّاء هنا -->
+                    <option value="ar.abdulbasitmurattal">عبد الباسط (مرتل)</option>
+                    <option value="ar.abdurrahmaansudais">عبد الرحمن السديس</option>
+                    <option value="ar.shaatree">أبو بكر الشاطري</option>
+                    <option value="ar.hanirifai">هاني الرفاعي</option>
+                    <option value="ar.husary">محمود الحصري</option>
+                    <option value="ar.minshawi">محمد المنشاوي</option>
+                    <option value="ar.muhammadayyoub">محمد أيوب</option>
+                    <option value="ar.saoodshuraym">سعود الشريم</option>
+                    <option value="ar.hudhaify">علي الحذيفي</option>
                 </select>
             </div>
 
             <div class="field">
                 <label for="delayRange">منزلق التأخير قبل تشغيل الآية التالية في التسميع (ثوانٍ)</label>
-                <input id="delayRange" type="range" min="5" max="20" step="1" value="10" />
+                <input id="delayRange" type="range" min="5" max="20" step="1" value="10">
                 <div id="delayValue" class="range-value">مدة الانتظار: 10 ثانية</div>
             </div>
         </div>
 
-        <!-- أزرار التحكم -->
         <div class="buttons">
             <button id="btnTasmi" class="btn btn-primary">
                 <span class="emoji">🎤</span><span>تسميع</span>
@@ -382,13 +386,11 @@
             </button>
         </div>
 
-        <!-- حالة النظام -->
         <div class="status-row">
             <div id="listeningDot" class="listening-indicator"></div>
             <div id="statusMessage" class="status">جاهز لاختيار السورة</div>
         </div>
 
-        <!-- شريط التقدم -->
         <div class="progress-wrapper">
             <div class="progress-bar">
                 <div id="progressInner" class="progress-bar-inner"></div>
@@ -399,7 +401,6 @@
             </div>
         </div>
 
-        <!-- عرض الآية والكلمات -->
         <div class="ayah-box">
             <div class="ayah-header">
                 <span id="ayahLabel">لا توجد آية معروضة</span>
@@ -415,13 +416,127 @@
 </div>
 
 <script>
-/* =========================
-   الإعدادات العامة والمتغيّرات
-   ========================= */
+/* قائمة السور الكاملة (114 سورة) مُضمَّنة */
+const SURAHS = [
+    {number:1,name:"الفاتحة",englishName:"Al-Faatiha",ayahs:7},
+    {number:2,name:"البقرة",englishName:"Al-Baqara",ayahs:286},
+    {number:3,name:"آل عمران",englishName:"Aal-i-Imraan",ayahs:200},
+    {number:4,name:"النساء",englishName:"An-Nisaa",ayahs:176},
+    {number:5,name:"المائدة",englishName:"Al-Maaida",ayahs:120},
+    {number:6,name:"الأنعام",englishName:"Al-An'aam",ayahs:165},
+    {number:7,name:"الأعراف",englishName:"Al-A'raaf",ayahs:206},
+    {number:8,name:"الأنفال",englishName:"Al-Anfaal",ayahs:75},
+    {number:9,name:"التوبة",englishName:"At-Tawba",ayahs:129},
+    {number:10,name:"يونس",englishName:"Yunus",ayahs:109},
+    {number:11,name:"هود",englishName:"Hud",ayahs:123},
+    {number:12,name:"يوسف",englishName:"Yusuf",ayahs:111},
+    {number:13,name:"الرعد",englishName:"Ar-Ra'd",ayahs:43},
+    {number:14,name:"إبراهيم",englishName:"Ibrahim",ayahs:52},
+    {number:15,name:"الحجر",englishName:"Al-Hijr",ayahs:99},
+    {number:16,name:"النحل",englishName:"An-Nahl",ayahs:128},
+    {number:17,name:"الإسراء",englishName:"Al-Israa",ayahs:111},
+    {number:18,name:"الكهف",englishName:"Al-Kahf",ayahs:110},
+    {number:19,name:"مريم",englishName:"Maryam",ayahs:98},
+    {number:20,name:"طه",englishName:"Taa-Haa",ayahs:135},
+    {number:21,name:"الأنبياء",englishName:"Al-Anbiyaa",ayahs:112},
+    {number:22,name:"الحج",englishName:"Al-Hajj",ayahs:78},
+    {number:23,name:"المؤمنون",englishName:"Al-Muminoon",ayahs:118},
+    {number:24,name:"النور",englishName:"An-Noor",ayahs:64},
+    {number:25,name:"الفرقان",englishName:"Al-Furqaan",ayahs:77},
+    {number:26,name:"الشعراء",englishName:"Ash-Shu'araa",ayahs:227},
+    {number:27,name:"النمل",englishName:"An-Naml",ayahs:93},
+    {number:28,name:"القصص",englishName:"Al-Qasas",ayahs:88},
+    {number:29,name:"العنكبوت",englishName:"Al-Ankaboot",ayahs:69},
+    {number:30,name:"الروم",englishName:"Ar-Room",ayahs:60},
+    {number:31,name:"لقمان",englishName:"Luqman",ayahs:34},
+    {number:32,name:"السجدة",englishName:"As-Sajda",ayahs:30},
+    {number:33,name:"الأحزاب",englishName:"Al-Ahzaab",ayahs:73},
+    {number:34,name:"سبأ",englishName:"Saba",ayahs:54},
+    {number:35,name:"فاطر",englishName:"Faatir",ayahs:45},
+    {number:36,name:"يس",englishName:"Yaseen",ayahs:83},
+    {number:37,name:"الصافات",englishName:"As-Saaffaat",ayahs:182},
+    {number:38,name:"ص",englishName:"Saad",ayahs:88},
+    {number:39,name:"الزمر",englishName:"Az-Zumar",ayahs:75},
+    {number:40,name:"غافر",englishName:"Ghafir",ayahs:85},
+    {number:41,name:"فصلت",englishName:"Fussilat",ayahs:54},
+    {number:42,name:"الشورى",englishName:"Ash-Shura",ayahs:53},
+    {number:43,name:"الزخرف",englishName:"Az-Zukhruf",ayahs:89},
+    {number:44,name:"الدخان",englishName:"Ad-Dukhaan",ayahs:59},
+    {number:45,name:"الجاثية",englishName:"Al-Jaathiya",ayahs:37},
+    {number:46,name:"الأحقاف",englishName:"Al-Ahqaf",ayahs:35},
+    {number:47,name:"محمد",englishName:"Muhammad",ayahs:38},
+    {number:48,name:"الفتح",englishName:"Al-Fath",ayahs:29},
+    {number:49,name:"الحجرات",englishName:"Al-Hujuraat",ayahs:18},
+    {number:50,name:"ق",englishName:"Qaaf",ayahs:45},
+    {number:51,name:"الذاريات",englishName:"Adh-Dhaariyat",ayahs:60},
+    {number:52,name:"الطور",englishName:"At-Tur",ayahs:49},
+    {number:53,name:"النجم",englishName:"An-Najm",ayahs:62},
+    {number:54,name:"القمر",englishName:"Al-Qamar",ayahs:55},
+    {number:55,name:"الرحمن",englishName:"Ar-Rahmaan",ayahs:78},
+    {number:56,name:"الواقعة",englishName:"Al-Waaqia",ayahs:96},
+    {number:57,name:"الحديد",englishName:"Al-Hadid",ayahs:29},
+    {number:58,name:"المجادلة",englishName:"Al-Mujaadila",ayahs:22},
+    {number:59,name:"الحشر",englishName:"Al-Hashr",ayahs:24},
+    {number:60,name:"الممتحنة",englishName:"Al-Mumtahana",ayahs:13},
+    {number:61,name:"الصف",englishName:"As-Saff",ayahs:14},
+    {number:62,name:"الجمعة",englishName:"Al-Jumu'a",ayahs:11},
+    {number:63,name:"المنافقون",englishName:"Al-Munaafiqoon",ayahs:11},
+    {number:64,name:"التغابن",englishName:"At-Taghaabun",ayahs:18},
+    {number:65,name:"الطلاق",englishName:"At-Talaaq",ayahs:12},
+    {number:66,name:"التحريم",englishName:"At-Tahrim",ayahs:12},
+    {number:67,name:"الملك",englishName:"Al-Mulk",ayahs:30},
+    {number:68,name:"القلم",englishName:"Al-Qalam",ayahs:52},
+    {number:69,name:"الحاقة",englishName:"Al-Haaqqa",ayahs:52},
+    {number:70,name:"المعارج",englishName:"Al-Ma'aarij",ayahs:44},
+    {number:71,name:"نوح",englishName:"Nooh",ayahs:28},
+    {number:72,name:"الجن",englishName:"Al-Jinn",ayahs:28},
+    {number:73,name:"المزمل",englishName:"Al-Muzzammil",ayahs:20},
+    {number:74,name:"المدثر",englishName:"Al-Muddaththir",ayahs:56},
+    {number:75,name:"القيامة",englishName:"Al-Qiyaama",ayahs:40},
+    {number:76,name:"الإنسان",englishName:"Al-Insaan",ayahs:31},
+    {number:77,name:"المرسلات",englishName:"Al-Mursalaat",ayahs:50},
+    {number:78,name:"النبأ",englishName:"An-Naba",ayahs:40},
+    {number:79,name:"النازعات",englishName:"An-Naazi'aat",ayahs:46},
+    {number:80,name:"عبس",englishName:"Abasa",ayahs:42},
+    {number:81,name:"التكوير",englishName:"At-Takwir",ayahs:29},
+    {number:82,name:"الإنفطار",englishName:"Al-Infitaar",ayahs:19},
+    {number:83,name:"المطففين",englishName:"Al-Mutaffifin",ayahs:36},
+    {number:84,name:"الإنشقاق",englishName:"Al-Inshiqaaq",ayahs:25},
+    {number:85,name:"البروج",englishName:"Al-Burooj",ayahs:22},
+    {number:86,name:"الطارق",englishName:"At-Taariq",ayahs:17},
+    {number:87,name:"الأعلى",englishName:"Al-A'laa",ayahs:19},
+    {number:88,name:"الغاشية",englishName:"Al-Ghaashiya",ayahs:26},
+    {number:89,name:"الفجر",englishName:"Al-Fajr",ayahs:30},
+    {number:90,name:"البلد",englishName:"Al-Balad",ayahs:20},
+    {number:91,name:"الشمس",englishName:"Ash-Shams",ayahs:15},
+    {number:92,name:"الليل",englishName:"Al-Lail",ayahs:21},
+    {number:93,name:"الضحى",englishName:"Ad-Dhuhaa",ayahs:11},
+    {number:94,name:"الشرح",englishName:"Ash-Sharh",ayahs:8},
+    {number:95,name:"التين",englishName:"At-Tin",ayahs:8},
+    {number:96,name:"العلق",englishName:"Al-Alaq",ayahs:19},
+    {number:97,name:"القدر",englishName:"Al-Qadr",ayahs:5},
+    {number:98,name:"البينة",englishName:"Al-Bayyina",ayahs:8},
+    {number:99,name:"الزلزلة",englishName:"Az-Zalzala",ayahs:8},
+    {number:100,name:"العاديات",englishName:"Al-Aadiyaat",ayahs:11},
+    {number:101,name:"القارعة",englishName:"Al-Qaari'a",ayahs:11},
+    {number:102,name:"التكاثر",englishName:"At-Takaathur",ayahs:8},
+    {number:103,name:"العصر",englishName:"Al-Asr",ayahs:3},
+    {number:104,name:"الهمزة",englishName:"Al-Humaza",ayahs:9},
+    {number:105,name:"الفيل",englishName:"Al-Fil",ayahs:5},
+    {number:106,name:"قريش",englishName:"Quraish",ayahs:4},
+    {number:107,name:"الماعون",englishName:"Al-Maa'un",ayahs:7},
+    {number:108,name:"الكوثر",englishName:"Al-Kawthar",ayahs:3},
+    {number:109,name:"الكافرون",englishName:"Al-Kaafiroon",ayahs:6},
+    {number:110,name:"النصر",englishName:"An-Nasr",ayahs:3},
+    {number:111,name:"المسد",englishName:"Al-Masad",ayahs:5},
+    {number:112,name:"الإخلاص",englishName:"Al-Ikhlaas",ayahs:4},
+    {number:113,name:"الفلق",englishName:"Al-Falaq",ayahs:5},
+    {number:114,name:"الناس",englishName:"An-Naas",ayahs:6}
+];
 
-const API_BASE = "https://api.alquran.cloud/v1"; // [web:7][web:10][web:19][web:22]
+const API_BASE = "https://api.alquran.cloud/v1";
 const DEFAULT_TEXT_EDITION = "quran-uthmani";
-let currentAudioEdition = "ar.alafasy";          // [web:25]
+let currentAudioEdition = "ar.alafasy";
 
 const surahSelect = document.getElementById("surahSelect");
 const ayahInput = document.getElementById("ayahInput");
@@ -441,12 +556,11 @@ const ayahLabel = document.getElementById("ayahLabel");
 const ayahTextBox = document.getElementById("ayahText");
 const modeBadge = document.getElementById("modeBadge");
 
-// حالة التطبيق
-let mode = "idle";           // idle | tasmi | tilawa
-let currentSurah = null;     // رقم السورة الحالي
-let ayahs = [];              // [{ numberInSurah, text, normalizedText, audioUrl }, ...]
-let currentAyahIndex = -1;   // مؤشر الآية (0-based)
-let nextAyahToPlayIndex = 0; // خاص بالتسميع (الآية التالية للتشغيل)
+let mode = "idle";
+let currentSurah = null;
+let ayahs = [];
+let currentAyahIndex = -1;
+let nextAyahToPlayIndex = 0;
 let recognition = null;
 let recognizing = false;
 let countdownTimer = null;
@@ -454,21 +568,13 @@ let countdownSeconds = 0;
 let currentAudio = null;
 let wordTimer = null;
 
-/* =========================
-   أدوات مساعدة للنص العربي
-   ========================= */
-
 function normalizeArabic(text) {
     if (!text) return "";
     let t = text;
-    // إزالة التشكيل
     t = t.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
-    // إزالة التطويل
     t = t.replace(/ـ/g, "");
-    // إزالة الأرقام والعلامات
     t = t.replace(/[\d\u0660-\u0669]/g, "");
     t = t.replace(/[^\u0600-\u06FF\s]/g, " ");
-    // مسافات
     t = t.replace(/\s+/g, " ").trim();
     return t;
 }
@@ -478,29 +584,16 @@ function splitWords(text) {
     return clean ? clean.split(" ") : [];
 }
 
-/* =========================
-   تحميل السور والآيات والصوت
-   ========================= */
-
-async function loadSurahList() {
-    try {
-        setStatus("جارِ تحميل قائمة السور...", "info");
-        const resp = await fetch(API_BASE + "/surahs"); // يرجع 114 سورة [web:10]
-        const json = await resp.json();
-        if (json.code !== 200) throw new Error("خطأ في تحميل السور");
-        surahSelect.innerHTML = '<option value="">اختر السورة...</option>';
-        json.data.forEach((s) => {
-            const opt = document.createElement("option");
-            opt.value = s.number;
-            opt.textContent = `${s.number}. ${s.englishName} - ${s.name}`;
-            opt.dataset.ayahs = s.numberOfAyahs;
-            surahSelect.appendChild(opt);
-        });
-        setStatus("اختر السورة ثم اختر الوضع: تسميع أو تلاوة", "normal");
-    } catch (e) {
-        console.error(e);
-        setStatus("تعذّر تحميل قائمة السور. تأكد من الاتصال بالإنترنت.", "error");
-    }
+function loadSurahList() {
+    surahSelect.innerHTML = '<option value="">اختر السورة...</option>';
+    SURAHS.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.number;
+        opt.textContent = `${s.number}. ${s.englishName} - ${s.name}`;
+        opt.dataset.ayahs = s.ayahs;
+        surahSelect.appendChild(opt);
+    });
+    setStatus("اختر السورة ثم اختر الوضع: تسميع أو تلاوة", "normal");
 }
 
 async function loadSurah(surahNumber) {
@@ -510,18 +603,17 @@ async function loadSurah(surahNumber) {
         ayahs = [];
         currentSurah = null;
 
-        // نص الآيات
         const textUrl = `${API_BASE}/surah/${surahNumber}/${DEFAULT_TEXT_EDITION}`;
         const audioUrl = `${API_BASE}/surah/${surahNumber}/${currentAudioEdition}`;
 
         const [textResp, audioResp] = await Promise.all([
             fetch(textUrl),
-            fetch(audioUrl),
+            fetch(audioUrl)
         ]);
 
         const [textJson, audioJson] = await Promise.all([
             textResp.json(),
-            audioResp.json(),
+            audioResp.json()
         ]);
 
         if (textJson.code !== 200 || audioJson.code !== 200) {
@@ -537,7 +629,7 @@ async function loadSurah(surahNumber) {
                 numberInSurah: a.numberInSurah,
                 text: a.text,
                 normalizedText: normalizeArabic(a.text),
-                audioUrl: audioAyah.audio || "",
+                audioUrl: audioAyah.audio || ""
             };
         });
 
@@ -556,10 +648,6 @@ async function loadSurah(surahNumber) {
     }
 }
 
-/* =========================
-   إدارة شريط التقدم
-   ========================= */
-
 function updateProgress(currentIndex, total) {
     const curr = currentIndex > 0 ? currentIndex : 0;
     const percent = total > 0 ? Math.round((curr / total) * 100) : 0;
@@ -567,10 +655,6 @@ function updateProgress(currentIndex, total) {
     progressAyah.textContent = `الآية: ${curr} / ${total || "-"}`;
     progressPercent.textContent = percent + "%";
 }
-
-/* =========================
-   عرض الآية والكلمات المتحركة
-   ========================= */
 
 function clearWordHighlight() {
     if (wordTimer) {
@@ -600,17 +684,16 @@ function animateWordsWithAudio(audio, modeKind) {
     const spans = Array.from(document.querySelectorAll(".ayah-word"));
     if (!spans.length || !audio) return;
 
-    const activeClass =
-        modeKind === "tilawa" ? "active-tilawa" : "active-tasmi";
+    const activeClass = modeKind === "tilawa" ? "active-tilawa" : "active-tasmi";
 
     function clearActive() {
-        spans.forEach((s) => s.classList.remove("active-tilawa", "active-tasmi"));
+        spans.forEach(s => s.classList.remove("active-tilawa", "active-tasmi"));
     }
 
     let idx = 0;
     const startAnimation = () => {
         clearActive();
-        const duration = audio.duration || 10; // افتراضي 10 ثوانٍ إن لم تُعرف المدة
+        const duration = audio.duration || 10;
         const step = duration / (spans.length || 1);
 
         wordTimer = setInterval(() => {
@@ -628,28 +711,16 @@ function animateWordsWithAudio(audio, modeKind) {
     if (audio.readyState >= 1) {
         startAnimation();
     } else {
-        audio.addEventListener(
-            "loadedmetadata",
-            () => {
-                startAnimation();
-            },
-            { once: true }
-        );
+        audio.addEventListener("loadedmetadata", () => {
+            startAnimation();
+        }, { once: true });
     }
 
-    audio.addEventListener(
-        "ended",
-        () => {
-            clearActive();
-            clearWordHighlight();
-        },
-        { once: false }
-    );
+    audio.addEventListener("ended", () => {
+        clearActive();
+        clearWordHighlight();
+    }, { once: false });
 }
-
-/* =========================
-   تشغيل الصوت للآية
-   ========================= */
 
 function stopCurrentAudio() {
     if (currentAudio) {
@@ -678,7 +749,6 @@ function playAyahAudio(index, playMode) {
     renderAyahWords(ayah.text);
     animateWordsWithAudio(audio, playMode);
 
-    // ألوان الحالة
     if (playMode === "tilawa") {
         setStatus(`📖 تلاوة آية ${ayah.numberInSurah}`, "strong");
         modeBadge.textContent = "وضع التلاوة";
@@ -689,15 +759,13 @@ function playAyahAudio(index, playMode) {
         modeBadge.className = "mode-badge mode-badge-tasmi";
     }
 
-    audio.play().catch((e) => {
+    audio.play().catch(e => {
         console.error(e);
         setStatus("تعذّر تشغيل الصوت. تحقق من الاتصال أو صلاحيات الصوت.", "error");
     });
 
-    // عند انتهاء الآية
     audio.addEventListener("ended", () => {
         if (playMode === "tilawa") {
-            // بعد 1.2 ثانية انتقل للآية التالية
             setTimeout(() => {
                 if (mode === "tilawa") {
                     currentAyahIndex++;
@@ -714,17 +782,12 @@ function playAyahAudio(index, playMode) {
                 }
             }, 1200);
         } else if (playMode === "tasmi") {
-            // بعد التشغيل يعود للاستماع مرة أخرى
             if (mode === "tasmi") {
                 startRecognition();
             }
         }
     });
 }
-
-/* =========================
-   تسلسل التلاوة (وضع التلاوة)
-   ========================= */
 
 function startTilawa() {
     if (!currentSurah || !ayahs.length) {
@@ -737,7 +800,7 @@ function startTilawa() {
 
     mode = "tilawa";
     enableMainControls(false);
-    ayahInput.disabled = false; // في التلاوة فقط
+    ayahInput.disabled = false;
     listeningDot.classList.remove("active");
 
     const total = ayahs.length;
@@ -751,28 +814,22 @@ function startTilawa() {
     currentAyahIndex = startIndex;
     updateProgress(currentAyahIndex, total);
 
-    // البسملة: إذا بدأ من الآية 1 والسورة ليست التوبة (9)
     if (currentSurah !== "9" && currentAyahIndex === 0) {
-        // تشغيل بسملة خاصة ثم أول آية
         playBasmalaThenFirstAyah();
     } else {
         playAyahAudio(currentAyahIndex, "tilawa");
     }
 }
 
-// تشغيل البسملة (من آية رقم 1 في المصحف) بصوت القارئ، ثم آية 1 من السورة الحالية
 function playBasmalaThenFirstAyah() {
     stopCurrentAudio();
 
-    const basmalaUrl =
-        "https://cdn.islamic.network/quran/audio/128/" +
-        currentAudioEdition +
-        "/1.mp3"; // آية 1 = البسملة [web:25]
+    const basmalaUrl = `https://cdn.islamic.network/quran/audio/128/${currentAudioEdition}/1.mp3`;
 
     const audio = new Audio(basmalaUrl);
     currentAudio = audio;
 
-    const basmalaText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+    const basmalaText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
     ayahLabel.textContent = "البسملة";
     renderAyahWords(basmalaText);
     animateWordsWithAudio(audio, "tilawa");
@@ -781,15 +838,13 @@ function playBasmalaThenFirstAyah() {
     modeBadge.textContent = "وضع التلاوة";
     modeBadge.className = "mode-badge mode-badge-tilawa";
 
-    audio.play().catch((e) => {
+    audio.play().catch(e => {
         console.error(e);
         setStatus("تعذّر تشغيل البسملة، سيتم البدء من الآية الأولى مباشرة.", "error");
-        // ابدأ مباشرة من الآية الأولى
         playAyahAudio(currentAyahIndex, "tilawa");
     });
 
     audio.addEventListener("ended", () => {
-        // بعد ثانية يذهب للآية الأولى
         setTimeout(() => {
             if (mode === "tilawa") {
                 playAyahAudio(currentAyahIndex, "tilawa");
@@ -798,20 +853,12 @@ function playBasmalaThenFirstAyah() {
     });
 }
 
-/* =========================
-   Web Speech API (وضع التسميع)
-   ========================= */
-
 function hasSpeechSupport() {
-    return (
-        "SpeechRecognition" in window ||
-        "webkitSpeechRecognition" in window
-    );
+    return "SpeechRecognition" in window || "webkitSpeechRecognition" in window;
 }
 
 function initRecognition() {
-    const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return null;
 
     const rec = new SpeechRecognition();
@@ -823,10 +870,7 @@ function initRecognition() {
 
 function startTasmi() {
     if (!hasSpeechSupport()) {
-        setStatus(
-            "المتصفح لا يدعم Web Speech API. جرّب متصفح كروم على أندرويد.",
-            "error"
-        );
+        setStatus("المتصفح لا يدعم Web Speech API. جرّب متصفح كروم على أندرويد.", "error");
         return;
     }
     if (!currentSurah || !ayahs.length) {
@@ -840,12 +884,12 @@ function startTasmi() {
 
     mode = "tasmi";
     enableMainControls(false);
-    ayahInput.disabled = true; // في التسميع يكون معطلاً
+    ayahInput.disabled = true;
     listeningDot.classList.add("active");
     modeBadge.textContent = "وضع التسميع (استماع)";
     modeBadge.className = "mode-badge mode-badge-tasmi";
 
-    nextAyahToPlayIndex = 0; // سيحدَّث بعد التعرف
+    nextAyahToPlayIndex = 0;
     updateProgress(0, ayahs.length);
 
     startRecognition();
@@ -855,10 +899,7 @@ function startRecognition() {
     if (!recognition) {
         recognition = initRecognition();
         if (!recognition) {
-            setStatus(
-                "تعذّر تهيئة التعرف على الصوت. تحقق من المتصفح والصلاحيات.",
-                "error"
-            );
+            setStatus("تعذّر تهيئة التعرف على الصوت. تحقق من المتصفح والصلاحيات.", "error");
             mode = "idle";
             enableMainControls(true);
             return;
@@ -882,7 +923,6 @@ function startRecognition() {
         recognition.onend = () => {
             recognizing = false;
             listeningDot.classList.remove("active");
-            // انتهاء الكلام → نبدأ العد التنازلي لتشغيل الآية التالية
             if (mode === "tasmi") {
                 startCountdown();
             }
@@ -906,7 +946,7 @@ function startRecognition() {
     try {
         recognition.start();
     } catch (e) {
-        // في بعض المتصفحات، start مرتين ترمي استثناء، نتجاهله
+        // تجاهل
     }
 }
 
@@ -934,7 +974,6 @@ function startCountdown() {
             setStatus(`⏱️ ${countdownSeconds}ث عد تنازلي قبل التشغيل`, "warn");
         } else {
             cancelCountdown();
-            // عند انتهاء العد → نُشغّل الآية التالية التي لم تُقرأ بعد
             if (mode === "tasmi") {
                 if (nextAyahToPlayIndex >= 0 && nextAyahToPlayIndex < ayahs.length) {
                     playAyahAudio(nextAyahToPlayIndex, "tasmi");
@@ -957,7 +996,6 @@ function cancelCountdown() {
     }
 }
 
-/* مطابقة النص المقروء مع آيات السورة (تطابق ذكي 50%+) */
 function processRecognizedText(text) {
     if (mode !== "tasmi" || !ayahs.length) return;
 
@@ -976,7 +1014,7 @@ function processRecognizedText(text) {
 
         let matches = 0;
         const ayahWordSet = new Set(ayahWords);
-        inputWords.forEach((w) => {
+        inputWords.forEach(w => {
             if (ayahWordSet.has(w)) matches++;
         });
 
@@ -991,20 +1029,14 @@ function processRecognizedText(text) {
         const ayah = ayahs[bestIndex];
         setStatus(`✅ آية رقم ${ayah.numberInSurah} (تطابق ${(bestScore * 100).toFixed(0)}%)`, "strong");
 
-        // تحديث التقدّم (الآية الحالية / إجمالي الآيات)
         updateProgress(ayah.numberInSurah, ayahs.length);
 
-        // حفظ الآية التالية X+1 ليقوم بتشغيلها لاحقاً
         const next = bestIndex + 1;
-        nextAyahToPlayIndex = next < ayahs.length ? next : ayahs.length; // لو آخر آية → مكتمل
+        nextAyahToPlayIndex = next < ayahs.length ? next : ayahs.length;
     } else {
         setStatus("لم يتم التعرف على آية بوضوح. حاول مرة أخرى.", "error");
     }
 }
-
-/* =========================
-   إدارة الأزرار والحالة
-   ========================= */
 
 function setStatus(text, level = "normal") {
     statusMessage.textContent = text;
@@ -1019,15 +1051,10 @@ function setStatus(text, level = "normal") {
 function enableMainControls(enabled) {
     btnTasmi.disabled = !enabled;
     btnTilawa.disabled = !enabled;
-    btnStop.disabled = false; // الإيقاف دائماً متاح
+    btnStop.disabled = false;
     surahSelect.disabled = !enabled;
     reciterSelect.disabled = !enabled;
-    // حقل الآية يحدد حسب الوضع عند بدءه
 }
-
-/* =========================
-   الأحداث (Events)
-   ========================= */
 
 delayRange.addEventListener("input", () => {
     delayValue.textContent = `مدة الانتظار: ${delayRange.value} ثانية`;
@@ -1044,14 +1071,11 @@ surahSelect.addEventListener("change", async () => {
         setStatus("اختر سورة للبدء.", "normal");
         return;
     }
-    // تحميل السورة الجديدة وإعادة التهيئة
     await loadSurah(val);
 });
 
 reciterSelect.addEventListener("change", async () => {
     currentAudioEdition = reciterSelect.value;
-    // حسب المواصفات: لو كان البرنامج واقفاً → يعيد تحميل بيانات القارئ الجديد
-    // ولو في وسط التسميع/التلاوة → لا يتأثر
     if (mode === "idle" && currentSurah) {
         await loadSurah(currentSurah);
     } else {
@@ -1090,12 +1114,8 @@ btnStop.addEventListener("click", () => {
     setStatus("تم الإيقاف. يمكنك اختيار سورة أو وضع جديد.", "normal");
 });
 
-/* =========================
-   بدء التطبيق
-   ========================= */
-
 document.addEventListener("DOMContentLoaded", () => {
-    loadSurahList(); // يجلب 114 سورة من API alquran.cloud [web:10][web:19][web:22]
+    loadSurahList();
 });
 </script>
 </body>
