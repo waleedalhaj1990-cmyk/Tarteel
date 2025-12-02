@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن - النسخة النهائية</title>
+    <title>تسميع وتلاوة القرآن - النسخة المُحسَّنة</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <style>
@@ -451,8 +451,7 @@
         </div>
 
         <div class="footer-note">
-            يعتمد على Web Speech API (كروم) • تأكد من منح صلاحية الميكروفون<br>
-            <span style="color: #facc15; font-size: 0.68rem;">ℹ️ صوت التنبيه من نظام أندرويد - تم تقليله لأدنى حد ممكن</span>
+            يعتمد على Web Speech API (كروم) • تأكد من منح صلاحية الميكروفون
         </div>
     </div>
 </div>
@@ -978,35 +977,38 @@ function playAyahAudio(index, playMode) {
 
         audio.addEventListener("loadedmetadata", () => {
             const duration = (audio.duration || 10) * 1000;
-            audioEndTime = Date.now() + duration + 4000;
-            console.log(`⏰ الصوت سينتهي بعد ${duration/1000} ثانية + 4 ثواني أمان`);
+            audioEndTime = Date.now() + duration + 3000;
+            console.log(`⏰ الصوت سينتهي بعد ${duration/1000} ثانية + 3 ثواني أمان`);
         }, { once: true });
 
         audio.addEventListener("ended", () => {
             console.log(`🔊 انتهى تشغيل الآية ${ayah.numberInSurah}`);
             
-            setTimeout(() => {
+            if (playMode === "tilawa") {
                 isPlayingAudio = false;
-                shouldProcessRecognition = true;
-                console.log("✅ تم إلغاء flag الحماية");
+                shouldProcessRecognition = false;
                 
-                if (playMode === "tilawa") {
-                    setTimeout(() => {
-                        if (mode === "tilawa") {
-                            currentAyahIndex++;
-                            if (currentAyahIndex >= ayahs.length) {
-                                setStatus("🎉 إكمال! انتهيت من السورة.", "done");
-                                modeBadge.textContent = "مكتمل";
-                                updateProgress(ayahs.length, ayahs.length);
-                                mode = "idle";
-                                enableMainControls(true);
-                            } else {
-                                playAyahAudio(currentAyahIndex, "tilawa");
-                            }
+                setTimeout(() => {
+                    if (mode === "tilawa") {
+                        currentAyahIndex++;
+                        if (currentAyahIndex >= ayahs.length) {
+                            setStatus("🎉 إكمال! انتهيت من السورة.", "done");
+                            modeBadge.textContent = "مكتمل";
+                            updateProgress(ayahs.length, ayahs.length);
+                            mode = "idle";
+                            enableMainControls(true);
+                        } else {
+                            playAyahAudio(currentAyahIndex, "tilawa");
                         }
-                    }, 1500);
+                    }
+                }, 300);
+                
+            } else if (playMode === "tasmi") {
+                setTimeout(() => {
+                    isPlayingAudio = false;
+                    shouldProcessRecognition = true;
+                    console.log("✅ تم إلغاء flag الحماية");
                     
-                } else if (playMode === "tasmi") {
                     if (mode === "tasmi") {
                         expectedAyahIndex++;
                         console.log(`✅ انتهى التشغيل - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
@@ -1016,21 +1018,18 @@ function playAyahAudio(index, playMode) {
                             ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                             ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
                             
+                            listeningDot.classList.add("active");
+                            modeBadge.textContent = "وضع التسميع (استماع)";
+                            setStatus(`🎤 استمع... بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
+                            recognizedText.textContent = "جارِ الاستماع...";
+                            
+                            console.log(`🎤 تم تفعيل الاستماع للآية ${expectedAyahIndex + 1}`);
+                            
                             setTimeout(() => {
                                 if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                                    console.log(`🎤 إعادة تفعيل معالجة الاستماع للآية ${expectedAyahIndex + 1}`);
-                                    
-                                    listeningDot.classList.add("active");
-                                    modeBadge.textContent = "وضع التسميع (استماع)";
-                                    setStatus(`🎤 استمع... بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
-                                    
-                                    setTimeout(() => {
-                                        if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                                            startCountdown();
-                                        }
-                                    }, 1500);
+                                    startCountdown();
                                 }
-                            }, 1000);
+                            }, 500);
                             
                         } else {
                             setStatus("🎉 مبروك! أكملت السورة.", "done");
@@ -1042,12 +1041,12 @@ function playAyahAudio(index, playMode) {
                             stopRecognition();
                         }
                     }
-                }
-            }, 4000);
+                }, 2500);
+            }
             
         }, { once: true });
         
-    }, 300);
+    }, 200);
 }
 
 function startTilawa() {
@@ -1120,7 +1119,7 @@ function playBasmalaThenFirstAyah() {
                     updateProgress(1, ayahs.length);
                     playAyahAudio(currentAyahIndex, "tilawa");
                 }
-            }, 1000);
+            }, 300);
         });
     }, 200);
 }
