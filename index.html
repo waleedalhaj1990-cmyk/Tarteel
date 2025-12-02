@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن - النسخة النهائية المُحسَّنة</title>
+    <title>تسميع وتلاوة القرآن - النسخة النهائية المُصحَّحة</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
     <style>
@@ -896,6 +896,7 @@ function playAyahAudio(index, playMode) {
                 console.log(`✅ انتهى التشغيل - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
                 
                 if (expectedAyahIndex < ayahs.length) {
+                    updateProgress(expectedAyahIndex + 1, ayahs.length);
                     ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                     ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
                     
@@ -1026,7 +1027,7 @@ function startTasmi() {
     modeBadge.className = "mode-badge mode-badge-tasmi";
 
     expectedAyahIndex = 0;
-    updateProgress(0, ayahs.length);
+    updateProgress(expectedAyahIndex + 1, ayahs.length);
 
     ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
     ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
@@ -1207,19 +1208,18 @@ function processRecognizedText(text) {
             setStatus(`✅ صحيح! الآية ${ayah.numberInSurah} (${(bestScore * 100).toFixed(0)}%)`, "strong");
             recognizedText.innerHTML = `<div style="color: #4ade80;">✅ الآية ${ayah.numberInSurah} صحيحة ✓</div>`;
             
-            updateProgress(ayah.numberInSurah, ayahs.length);
-            
             expectedAyahIndex++;
             
             if (expectedAyahIndex < ayahs.length) {
+                updateProgress(expectedAyahIndex + 1, ayahs.length);
                 ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                 ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
                 console.log(`✅ قرأ الآية ${ayah.numberInSurah} صحيحة - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
                 
             } else {
+                updateProgress(ayahs.length, ayahs.length);
                 setStatus("🎉 مبروك! أكملت السورة.", "done");
                 modeBadge.textContent = "مكتمل";
-                updateProgress(ayahs.length, ayahs.length);
                 mode = "idle";
                 enableMainControls(true);
                 recognizedBox.classList.remove("active");
@@ -1232,11 +1232,13 @@ function processRecognizedText(text) {
             setStatus(`⚠️ قفزت إلى الآية ${ayah.numberInSurah}`, "warn");
             
             expectedAyahIndex = bestIndex + 1;
-            updateProgress(ayah.numberInSurah, ayahs.length);
             
             if (expectedAyahIndex < ayahs.length) {
+                updateProgress(expectedAyahIndex + 1, ayahs.length);
                 ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                 ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
+            } else {
+                updateProgress(ayahs.length, ayahs.length);
             }
             
         } else {
