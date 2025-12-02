@@ -685,9 +685,12 @@ function playAyahAudio(index, playMode) {
 
     audio.play().catch(e => {
         setStatus("تعذّر تشغيل الصوت", "error");
+        currentAudio = null;
     });
 
     audio.addEventListener("ended", () => {
+        currentAudio = null;
+        
         if (playMode === "tilawa") {
             setTimeout(() => {
                 if (mode === "tilawa") {
@@ -702,21 +705,29 @@ function playAyahAudio(index, playMode) {
                     }
                 }
             }, 500);
+            
         } else if (playMode === "tasmi") {
             setTimeout(() => {
                 if (mode === "tasmi") {
                     expectedAyahIndex++;
+                    
                     if (expectedAyahIndex < ayahs.length) {
                         updateProgress(expectedAyahIndex + 1, ayahs.length);
                         ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                         ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
+                        
                         listeningDot.classList.add("active");
                         modeBadge.textContent = "تسميع (استماع)";
                         setStatus(`🎤 بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
+                        
                         if (recognition && !recognizing) {
-                            recognition.start();
+                            try {
+                                recognition.start();
+                            } catch (e) {}
                         }
+                        
                         startCountdown();
+                        
                     } else {
                         setStatus("🎉 أكملت السورة", "done");
                         modeBadge.textContent = "مكتمل";
@@ -728,7 +739,7 @@ function playAyahAudio(index, playMode) {
                 }
             }, 1000);
         }
-    });
+    }, { once: true });
 }
 
 function startTilawa() {
@@ -756,7 +767,6 @@ function startTilawa() {
 
     currentAyahIndex = startIndex;
 
-    // ✅ إذا كانت الآية الأولى وليست سورة التوبة - نشغل البسملة
     if (currentSurah !== "9" && currentAyahIndex === 0) {
         updateProgress(0, total);
         playBasmalaThenFirstAyah();
@@ -785,17 +795,20 @@ function playBasmalaThenFirstAyah() {
 
     audio.play().catch(e => {
         setStatus("تعذّر تشغيل البسملة", "error");
+        currentAudio = null;
         playAyahAudio(currentAyahIndex, "tilawa");
     });
 
     audio.addEventListener("ended", () => {
+        currentAudio = null;
+        
         setTimeout(() => {
             if (mode === "tilawa") {
                 updateProgress(1, ayahs.length);
                 playAyahAudio(currentAyahIndex, "tilawa");
             }
         }, 500);
-    });
+    }, { once: true });
 }
 
 function hasSpeechSupport() {
