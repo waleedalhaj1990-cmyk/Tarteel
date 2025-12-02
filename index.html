@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن - مُحسَّن</title>
+    <title>تسميع وتلاوة القرآن - النسخة النهائية المُحسَّنة</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
     <style>
@@ -601,11 +601,11 @@ function normalizeArabic(text) {
     if (!text) return "";
     let t = text;
     t = t.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
-    t = t.replace(/[إأآٱ]/g, "ا");
+    t = t.replace(/[إأآٱا]/g, "ا");
     t = t.replace(/[ؤ]/g, "و");
     t = t.replace(/[ئ]/g, "ي");
-    t = t.replace(/[ىة]/g, "ه");
-    t = t.replace(/ـ/g, "");
+    t = t.replace(/[ىةه]/g, "ه");
+    t = t.replace(/[ـ]/g, "");
     t = t.replace(/[\d\u0660-\u0669]/g, "");
     t = t.replace(/[^\u0600-\u06FF\s]/g, " ");
     t = t.replace(/\s+/g, " ").trim();
@@ -617,25 +617,56 @@ function splitWords(text) {
     return clean ? clean.split(" ") : [];
 }
 
+function calculateBasicSimilarity(words1, words2) {
+    if (!words1.length || !words2.length) return 0;
+    
+    let matches = 0;
+    const set2 = new Set(words2);
+    words1.forEach(w => {
+        if (w.length >= 2 && set2.has(w)) matches++;
+    });
+    
+    return matches / Math.max(words1.length, words2.length);
+}
+
 function calculateSimilarity(text1, text2) {
     const words1 = splitWords(normalizeArabic(text1));
     const words2 = splitWords(normalizeArabic(text2));
     
     if (!words1.length || !words2.length) return 0;
     
-    let matches = 0;
-    const set2 = new Set(words2);
+    const stopWords = new Set(["و", "في", "من", "الي", "علي", "ان", "ثم", "او", "ف", "ل"]);
+    const filtered1 = words1.filter(w => w.length >= 2 && !stopWords.has(w));
+    const filtered2 = words2.filter(w => w.length >= 2 && !stopWords.has(w));
     
-    words1.forEach(w => {
-        if (w.length >= 2 && set2.has(w)) matches++;
+    if (!filtered1.length || !filtered2.length) {
+        return calculateBasicSimilarity(words1, words2);
+    }
+    
+    let exactMatches = 0;
+    const set2 = new Set(filtered2);
+    filtered1.forEach(w => {
+        if (set2.has(w)) exactMatches++;
+    });
+    
+    let partialMatches = 0;
+    filtered1.forEach(w1 => {
+        filtered2.forEach(w2 => {
+            if (w1.length >= 3 && w2.length >= 3) {
+                if (w1.includes(w2) || w2.includes(w1)) {
+                    partialMatches += 0.7;
+                }
+            }
+        });
     });
     
     let lcsLength = 0;
-    for (let i = 0; i < words1.length; i++) {
-        for (let j = 0; j < words2.length; j++) {
-            if (words1[i] === words2[j]) {
+    for (let i = 0; i < filtered1.length; i++) {
+        for (let j = 0; j < filtered2.length; j++) {
+            if (filtered1[i] === filtered2[j]) {
                 let k = 1;
-                while (i + k < words1.length && j + k < words2.length && words1[i + k] === words2[j + k]) {
+                while (i + k < filtered1.length && j + k < filtered2.length && 
+                       filtered1[i + k] === filtered2[j + k]) {
                     k++;
                 }
                 lcsLength = Math.max(lcsLength, k);
@@ -643,11 +674,12 @@ function calculateSimilarity(text1, text2) {
         }
     }
     
-    const score1 = matches / words1.length;
-    const score2 = matches / words2.length;
-    const score3 = lcsLength / Math.max(words1.length, words2.length);
+    const score1 = exactMatches / filtered1.length;
+    const score2 = exactMatches / filtered2.length;
+    const score3 = (exactMatches + partialMatches) / Math.max(filtered1.length, filtered2.length);
+    const score4 = lcsLength / Math.max(filtered1.length, filtered2.length);
     
-    return Math.max(score1, score2, score3);
+    return Math.max(score1, score2, score3, score4);
 }
 
 function isBasmala(text) {
@@ -1100,21 +1132,25 @@ function startCountdown() {
         return;
     }
 
-    setStatus(`⏱️ ${countdownSeconds}ث - إذا لم تقرأ سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
-    console.log(`⏱️ بدأ العد التنازلي ${countdownSeconds} ثانية`);
+    setTimeout(() => {
+        if (mode !== "tasmi") return;
+        
+        setStatus(`⏱️ ${countdownSeconds}ث - إذا لم تقرأ سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
+        console.log(`⏱️ بدأ العد التنازلي ${countdownSeconds} ثانية`);
 
-    countdownTimer = setInterval(() => {
-        countdownSeconds--;
-        if (countdownSeconds > 0) {
-            setStatus(`⏱️ ${countdownSeconds}ث - إذا لم تقرأ سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
-        } else {
-            cancelCountdown();
-            if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
-                console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${expectedAyahIndex + 1} (لم يقرأها القارئ)`);
-                playAyahAudio(expectedAyahIndex, "tasmi");
+        countdownTimer = setInterval(() => {
+            countdownSeconds--;
+            if (countdownSeconds > 0) {
+                setStatus(`⏱️ ${countdownSeconds}ث - إذا لم تقرأ سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
+            } else {
+                cancelCountdown();
+                if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
+                    console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${expectedAyahIndex + 1} (لم يقرأها القارئ)`);
+                    playAyahAudio(expectedAyahIndex, "tasmi");
+                }
             }
-        }
-    }, 1000);
+        }, 1000);
+    }, 2000);
 }
 
 function cancelCountdown() {
@@ -1162,7 +1198,7 @@ function processRecognizedText(text) {
 
     console.table(debugInfo.sort((a, b) => parseFloat(b.score) - parseFloat(a.score)).slice(0, 5));
 
-    if (bestIndex >= 0 && bestScore >= 0.20) {
+    if (bestIndex >= 0 && bestScore >= 0.15) {
         const ayah = ayahs[bestIndex];
         
         if (bestIndex === expectedAyahIndex) {
@@ -1208,8 +1244,11 @@ function processRecognizedText(text) {
             setStatus(`⚠️ الآية ${ayah.numberInSurah} ≠ ${expectedAyahIndex + 1}`, "error");
         }
     } else {
-        const msg = `⚠️ غير واضح (${(bestScore * 100).toFixed(0)}%)`;
-        recognizedText.innerHTML = `<div style="color: #facc15; font-size: 0.75rem;">${msg} - حاول مرة أخرى</div>`;
+        if (bestScore >= 0.10) {
+            recognizedText.innerHTML = `<div style="color: #facc15; font-size: 0.75rem;">⚠️ ${(bestScore * 100).toFixed(0)}% - ربما آية ${bestIndex + 1}؟</div>`;
+        } else {
+            recognizedText.innerHTML = `<div style="color: #9ca3af; font-size: 0.7rem;">🎙️ استمر بالقراءة...</div>`;
+        }
         console.warn("⚠️ تطابق ضعيف - أفضل تطابق:", (bestScore * 100).toFixed(1) + "%", "للآية", bestIndex + 1);
     }
 }
