@@ -318,7 +318,7 @@
                 <span class="emoji">📖</span><span>تلاوة</span>
             </button>
             <button id="btnStop" class="btn btn-stop">
-                <span class="emoji">⏹️</span><span>إيقاف</span>
+                <span class="emoji"⏹️</span><span>إيقاف</span>
             </button>
         </div>
 
@@ -547,6 +547,19 @@ function calculateSimilarity(text1, text2) {
     const words2 = splitWords(normalizeArabic(text2));
     
     if (!words1.length || !words2.length) return 0;
+    
+    // ✅ للآيات القصيرة جداً (أقل من 5 كلمات) - نستخدم طريقة مبسطة
+    if (words2.length <= 5) {
+        let matches = 0;
+        const set2 = new Set(words2);
+        words1.forEach(w => { 
+            if (w.length >= 2 && set2.has(w)) matches++; 
+        });
+        
+        // ✅ نسبة أعلى للآيات القصيرة
+        const score = matches / Math.min(words1.length, words2.length);
+        return Math.min(score * 1.3, 1.0);
+    }
     
     const stopWords = new Set(["و", "في", "من", "الي", "علي", "ان", "ثم", "او", "ف", "ل"]);
     const filtered1 = words1.filter(w => w.length >= 2 && !stopWords.has(w));
@@ -975,14 +988,16 @@ function processRecognizedText(text) {
         }
     });
 
-    if (bestIndex >= 0 && bestScore >= 0.15) {
+    const threshold = 0.10;
+
+    if (bestIndex >= 0 && bestScore >= threshold) {
         const ayah = ayahs[bestIndex];
         
         if (bestIndex === expectedAyahIndex) {
             cancelCountdown();
             
-            setStatus(`✅ صحيح! الآية ${ayah.numberInSurah}`, "strong");
-            recognizedText.textContent = `✅ الآية ${ayah.numberInSurah} صحيحة`;
+            setStatus(`✅ صحيح! الآية ${ayah.numberInSurah} (${(bestScore * 100).toFixed(0)}%)`, "strong");
+            recognizedText.textContent = `✅ الآية ${ayah.numberInSurah} صحيحة (${(bestScore * 100).toFixed(0)}%)`;
             
             expectedAyahIndex++;
             
@@ -1006,8 +1021,33 @@ function processRecognizedText(text) {
                 recognizedBox.classList.remove("active");
                 if (recognition) recognition.stop();
             }
+            
+        } else if (bestIndex > expectedAyahIndex && bestIndex <= expectedAyahIndex + 2) {
+            cancelCountdown();
+            
+            recognizedText.textContent = `⚠️ قفزت من ${expectedAyahIndex + 1} إلى ${ayah.numberInSurah}`;
+            setStatus(`⚠️ قفزت إلى الآية ${ayah.numberInSurah}`, "warn");
+            
+            expectedAyahIndex = bestIndex + 1;
+            
+            if (expectedAyahIndex < ayahs.length) {
+                updateProgress(expectedAyahIndex + 1, ayahs.length);
+                ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
+                ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
+                
+                setTimeout(() => {
+                    if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
+                        startCountdown();
+                    }
+                }, 1000);
+            }
+            
         } else {
-            recognizedText.textContent = `❌ الآية ${ayah.numberInSurah} وليست ${expectedAyahIndex + 1}`;
+            recognizedText.textContent = `❌ الآية ${ayah.numberInSurah} وليست ${expectedAyahIndex + 1} (${(bestScore * 100).toFixed(0)}%)`;
+        }
+    } else {
+        if (bestScore >= 0.05) {
+            recognizedText.textContent = `⚠️ ${(bestScore * 100).toFixed(0)}% - ربما آية ${bestIndex + 1}؟`;
         }
     }
 }
