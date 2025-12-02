@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن - النسخة النهائية الكاملة</title>
+    <title>تسميع وتلاوة القرآن - النسخة النهائية</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
     <style>
@@ -596,6 +596,7 @@ let countdownTimer = null;
 let countdownSeconds = 0;
 let currentAudio = null;
 let wordTimer = null;
+let fadeOutTimer = null;
 
 function normalizeArabic(text) {
     if (!text) return "";
@@ -612,21 +613,32 @@ function normalizeArabic(text) {
     return t;
 }
 
+// ✅ دالة قوية ومحسّنة لإزالة البسملة
 function removeBasmalaFromText(text) {
     if (!text) return text;
     
-    const basmalaPatterns = [
-        /^بِسْمِ\s*اللَّهِ\s*الرَّحْمَٰنِ\s*الرَّحِيمِ\s*/,
-        /^بسم\s*الله\s*الرحمن\s*الرحيم\s*/,
-        /^﷽\s*/
-    ];
+    // نقسم النص إلى كلمات
+    const words = text.split(/\s+/);
     
-    let cleanText = text;
-    basmalaPatterns.forEach(pattern => {
-        cleanText = cleanText.replace(pattern, '');
-    });
+    if (words.length <= 4) {
+        return text;
+    }
     
-    return cleanText.trim();
+    // نتحقق من أول كلمتين فقط (بسم الله)
+    const firstWord = normalizeArabic(words[0] || '');
+    const secondWord = normalizeArabic(words[1] || '');
+    
+    // إذا كانت الكلمة الأولى تحتوي على "بسم" والثانية "الله"
+    if (firstWord.includes('بسم') && secondWord.includes('الله')) {
+        // نحذف أول 4 كلمات (البسملة الكاملة)
+        const result = words.slice(4).join(' ').trim();
+        console.log("✅ تمت إزالة البسملة من الآية الأولى");
+        console.log("📝 قبل:", text.substring(0, 60) + "...");
+        console.log("📝 بعد:", result.substring(0, 60) + "...");
+        return result;
+    }
+    
+    return text;
 }
 
 function splitWords(text) {
@@ -752,6 +764,8 @@ async function loadSurah(surahNumber) {
             const audioAyah = audioAyahs[idx] || {};
             
             let ayahText = a.text;
+            
+            // ✅ إزالة البسملة من الآية الأولى (ماعدا سورة التوبة)
             if (idx === 0 && surahNumber !== "9") {
                 ayahText = removeBasmalaFromText(ayahText);
             }
@@ -853,10 +867,40 @@ function animateWordsWithAudio(audio, modeKind) {
     }, { once: false });
 }
 
-function stopCurrentAudio() {
+function fadeOutAudio(audio, duration = 200) {
+    if (!audio) return Promise.resolve();
+    
+    return new Promise((resolve) => {
+        const originalVolume = audio.volume;
+        const steps = 10;
+        const stepTime = duration / steps;
+        const volumeStep = originalVolume / steps;
+        
+        let currentStep = 0;
+        
+        if (fadeOutTimer) {
+            clearInterval(fadeOutTimer);
+        }
+        
+        fadeOutTimer = setInterval(() => {
+            currentStep++;
+            audio.volume = Math.max(0, originalVolume - (volumeStep * currentStep));
+            
+            if (currentStep >= steps || audio.volume <= 0) {
+                clearInterval(fadeOutTimer);
+                fadeOutTimer = null;
+                audio.pause();
+                audio.currentTime = 0;
+                audio.volume = originalVolume;
+                resolve();
+            }
+        }, stepTime);
+    });
+}
+
+async function stopCurrentAudio() {
     if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
+        await fadeOutAudio(currentAudio, 150);
         currentAudio = null;
     }
     clearWordHighlight();
@@ -872,77 +916,92 @@ function playAyahAudio(index, playMode) {
     }
 
     stopCurrentAudio();
-
-    const audio = new Audio(ayah.audioUrl);
-    currentAudio = audio;
-
-    ayahLabel.textContent = `الآية ${ayah.numberInSurah}`;
-    renderAyahWords(ayah.text);
-    animateWordsWithAudio(audio, playMode);
-
-    if (playMode === "tilawa") {
-        setStatus(`📖 تلاوة آية ${ayah.numberInSurah}`, "strong");
-        modeBadge.textContent = "وضع التلاوة";
-        modeBadge.className = "mode-badge mode-badge-tilawa";
-        updateProgress(ayah.numberInSurah, ayahs.length);
-    } else {
-        setStatus(`📻 تشغيل آية ${ayah.numberInSurah} (لم يقرأها القارئ)`, "info");
-        modeBadge.textContent = "وضع التسميع (تشغيل)";
-        modeBadge.className = "mode-badge mode-badge-tasmi";
-        updateProgress(ayah.numberInSurah, ayahs.length);
+    
+    if (playMode === "tasmi") {
+        stopRecognition();
+        listeningDot.classList.remove("active");
     }
 
-    audio.play().catch(e => {
-        console.error(e);
-        setStatus("تعذّر تشغيل الصوت. تحقق من الاتصال أو صلاحيات الصوت.", "error");
-    });
+    setTimeout(() => {
+        const audio = new Audio(ayah.audioUrl);
+        audio.volume = 1.0;
+        currentAudio = audio;
 
-    audio.addEventListener("ended", () => {
+        ayahLabel.textContent = `الآية ${ayah.numberInSurah}`;
+        renderAyahWords(ayah.text);
+        animateWordsWithAudio(audio, playMode);
+
         if (playMode === "tilawa") {
-            setTimeout(() => {
-                if (mode === "tilawa") {
-                    currentAyahIndex++;
-                    if (currentAyahIndex >= ayahs.length) {
-                        setStatus("🎉 إكمال! انتهيت من السورة.", "done");
+            setStatus(`📖 تلاوة آية ${ayah.numberInSurah}`, "strong");
+            modeBadge.textContent = "وضع التلاوة";
+            modeBadge.className = "mode-badge mode-badge-tilawa";
+            updateProgress(ayah.numberInSurah, ayahs.length);
+        } else {
+            setStatus(`📻 تشغيل آية ${ayah.numberInSurah} (لم يقرأها القارئ)`, "info");
+            modeBadge.textContent = "وضع التسميع (تشغيل)";
+            modeBadge.className = "mode-badge mode-badge-tasmi";
+            updateProgress(ayah.numberInSurah, ayahs.length);
+        }
+
+        audio.play().catch(e => {
+            console.error(e);
+            setStatus("تعذّر تشغيل الصوت. تحقق من الاتصال أو صلاحيات الصوت.", "error");
+        });
+
+        audio.addEventListener("ended", () => {
+            if (playMode === "tilawa") {
+                setTimeout(() => {
+                    if (mode === "tilawa") {
+                        currentAyahIndex++;
+                        if (currentAyahIndex >= ayahs.length) {
+                            setStatus("🎉 إكمال! انتهيت من السورة.", "done");
+                            modeBadge.textContent = "مكتمل";
+                            updateProgress(ayahs.length, ayahs.length);
+                            mode = "idle";
+                            enableMainControls(true);
+                        } else {
+                            playAyahAudio(currentAyahIndex, "tilawa");
+                        }
+                    }
+                }, 1200);
+            } else if (playMode === "tasmi") {
+                if (mode === "tasmi") {
+                    expectedAyahIndex++;
+                    console.log(`✅ انتهى التشغيل - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
+                    
+                    if (expectedAyahIndex < ayahs.length) {
+                        updateProgress(expectedAyahIndex + 1, ayahs.length);
+                        ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
+                        ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
+                        
+                        setTimeout(() => {
+                            if (mode === "tasmi") {
+                                listeningDot.classList.add("active");
+                                modeBadge.textContent = "وضع التسميع (استماع)";
+                                setStatus(`🎤 استمع... بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
+                                
+                                startRecognition();
+                                
+                                setTimeout(() => {
+                                    if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
+                                        startCountdown();
+                                    }
+                                }, 1500);
+                            }
+                        }, 1000);
+                    } else {
+                        setStatus("🎉 مبروك! أكملت السورة.", "done");
                         modeBadge.textContent = "مكتمل";
                         updateProgress(ayahs.length, ayahs.length);
                         mode = "idle";
                         enableMainControls(true);
-                    } else {
-                        playAyahAudio(currentAyahIndex, "tilawa");
+                        recognizedBox.classList.remove("active");
+                        stopRecognition();
                     }
                 }
-            }, 1200);
-        } else if (playMode === "tasmi") {
-            if (mode === "tasmi") {
-                expectedAyahIndex++;
-                console.log(`✅ انتهى التشغيل - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
-                
-                if (expectedAyahIndex < ayahs.length) {
-                    updateProgress(expectedAyahIndex + 1, ayahs.length);
-                    ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
-                    ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
-                    
-                    setTimeout(() => {
-                        startRecognition();
-                        setTimeout(() => {
-                            if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
-                                startCountdown();
-                            }
-                        }, 1500);
-                    }, 500);
-                } else {
-                    setStatus("🎉 مبروك! أكملت السورة.", "done");
-                    modeBadge.textContent = "مكتمل";
-                    updateProgress(ayahs.length, ayahs.length);
-                    mode = "idle";
-                    enableMainControls(true);
-                    recognizedBox.classList.remove("active");
-                    stopRecognition();
-                }
             }
-        }
-    });
+        });
+    }, 200);
 }
 
 function startTilawa() {
@@ -984,34 +1043,37 @@ function playBasmalaThenFirstAyah() {
 
     const basmalaUrl = `https://cdn.islamic.network/quran/audio/128/${currentAudioEdition}/1.mp3`;
 
-    const audio = new Audio(basmalaUrl);
-    currentAudio = audio;
+    setTimeout(() => {
+        const audio = new Audio(basmalaUrl);
+        audio.volume = 1.0;
+        currentAudio = audio;
 
-    const basmalaText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
-    ayahLabel.textContent = "البسملة";
-    renderAyahWords(basmalaText);
-    animateWordsWithAudio(audio, "tilawa");
+        const basmalaText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+        ayahLabel.textContent = "البسملة";
+        renderAyahWords(basmalaText);
+        animateWordsWithAudio(audio, "tilawa");
 
-    setStatus("تشغيل البسملة...", "strong");
-    modeBadge.textContent = "وضع التلاوة";
-    modeBadge.className = "mode-badge mode-badge-tilawa";
-    
-    updateProgress(0, ayahs.length);
+        setStatus("تشغيل البسملة...", "strong");
+        modeBadge.textContent = "وضع التلاوة";
+        modeBadge.className = "mode-badge mode-badge-tilawa";
+        
+        updateProgress(0, ayahs.length);
 
-    audio.play().catch(e => {
-        console.error(e);
-        setStatus("تعذّر تشغيل البسملة، سيتم البدء من الآية الأولى مباشرة.", "error");
-        playAyahAudio(currentAyahIndex, "tilawa");
-    });
+        audio.play().catch(e => {
+            console.error(e);
+            setStatus("تعذّر تشغيل البسملة، سيتم البدء من الآية الأولى مباشرة.", "error");
+            playAyahAudio(currentAyahIndex, "tilawa");
+        });
 
-    audio.addEventListener("ended", () => {
-        setTimeout(() => {
-            if (mode === "tilawa") {
-                updateProgress(1, ayahs.length);
-                playAyahAudio(currentAyahIndex, "tilawa");
-            }
-        }, 1000);
-    });
+        audio.addEventListener("ended", () => {
+            setTimeout(() => {
+                if (mode === "tilawa") {
+                    updateProgress(1, ayahs.length);
+                    playAyahAudio(currentAyahIndex, "tilawa");
+                }
+            }, 1000);
+        });
+    }, 200);
 }
 
 function hasSpeechSupport() {
@@ -1061,6 +1123,7 @@ function startTasmi() {
     ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
 
     console.log("🎤 بدأ وضع التسميع - بانتظار قراءة الآية 1");
+    
     startRecognition();
     
     setTimeout(() => {
@@ -1174,6 +1237,7 @@ function startCountdown() {
         mode = "idle";
         enableMainControls(true);
         recognizedBox.classList.remove("active");
+        stopRecognition();
         return;
     }
 
@@ -1188,7 +1252,10 @@ function startCountdown() {
             cancelCountdown();
             if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
                 console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${expectedAyahIndex + 1} (لم يقرأها القارئ)`);
+                
                 stopRecognition();
+                recognizedText.innerHTML = `<div style="color: #9ca3af;">🔇 تم إيقاف الاستماع مؤقتاً (جارِ تشغيل الآية)</div>`;
+                
                 playAyahAudio(expectedAyahIndex, "tasmi");
             }
         }
