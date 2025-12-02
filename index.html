@@ -318,7 +318,7 @@
                 <span class="emoji">📖</span><span>تلاوة</span>
             </button>
             <button id="btnStop" class="btn btn-stop">
-                <span class="emoji"⏹️</span><span>إيقاف</span>
+                <span class="emoji">⏹️</span><span>إيقاف</span>
             </button>
         </div>
 
@@ -548,15 +548,14 @@ function calculateSimilarity(text1, text2) {
     
     if (!words1.length || !words2.length) return 0;
     
-    // ✅ للآيات القصيرة جداً (أقل من 5 كلمات) - نستخدم طريقة مبسطة
-    if (words2.length <= 5) {
+    // ✅ للآيات القصيرة (أقل من 7 كلمات) - نستخدم طريقة مبسطة
+    if (words2.length <= 7) {
         let matches = 0;
         const set2 = new Set(words2);
         words1.forEach(w => { 
             if (w.length >= 2 && set2.has(w)) matches++; 
         });
         
-        // ✅ نسبة أعلى للآيات القصيرة
         const score = matches / Math.min(words1.length, words2.length);
         return Math.min(score * 1.3, 1.0);
     }
