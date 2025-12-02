@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن - نسخة الموبايل المُحسَّنة</title>
+    <title>تسميع وتلاوة القرآن - النسخة النهائية</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <style>
@@ -355,6 +355,7 @@
             font-size: 0.72rem;
             color: var(--text-sub);
             text-align: center;
+            line-height: 1.4;
         }
 
         @media (min-width: 520px) {
@@ -450,7 +451,8 @@
         </div>
 
         <div class="footer-note">
-            يعتمد على Web Speech API (كروم) • تأكد من منح صلاحية الميكروفون
+            يعتمد على Web Speech API (كروم) • تأكد من منح صلاحية الميكروفون<br>
+            <span style="color: #facc15; font-size: 0.68rem;">ℹ️ صوت التنبيه من نظام أندرويد - تم تقليله لأدنى حد ممكن</span>
         </div>
     </div>
 </div>
@@ -610,11 +612,10 @@ let currentAudio = null;
 let wordTimer = null;
 let fadeOutTimer = null;
 
-// ✅ FLAGS حماية قوية
+let shouldProcessRecognition = true;
 let isPlayingAudio = false;
-let audioEndTime = 0; // ✅ لتخزين متى ينتهي الصوت فعلياً
+let audioEndTime = 0;
 
-// ✅ منع صوت "بيب" في الموبايل
 document.addEventListener('touchstart', function(e) {}, {passive: true});
 document.addEventListener('touchmove', function(e) {}, {passive: true});
 document.addEventListener('touchend', function(e) {}, {passive: true});
@@ -921,11 +922,10 @@ async function stopCurrentAudio() {
     audioEndTime = 0;
 }
 
-// ✅ فحص قوي - هل الصوت ما زال يعمل فعلياً
 function isAudioActuallyPlaying() {
     if (!currentAudio) return false;
     if (isPlayingAudio) return true;
-    if (Date.now() < audioEndTime) return true; // ✅ حتى بعد ended - ننتظر
+    if (Date.now() < audioEndTime) return true;
     return false;
 }
 
@@ -938,15 +938,13 @@ function playAyahAudio(index, playMode) {
         return;
     }
 
-    // ✅ إيقاف كل شيء
     stopCurrentAudio();
     
-    // ✅ في وضع التسميع - نوقف الاستماع
     if (playMode === "tasmi") {
-        stopRecognition();
+        shouldProcessRecognition = false;
         listeningDot.classList.remove("active");
         isPlayingAudio = true;
-        console.log("🔒 بدأ تشغيل الآية - الاستماع مُوقف تماماً");
+        console.log("🔒 بدأ تشغيل الآية - سيتم تجاهل نتائج الاستماع");
     }
 
     setTimeout(() => {
@@ -975,22 +973,22 @@ function playAyahAudio(index, playMode) {
             setStatus("تعذّر تشغيل الصوت. تحقق من الاتصال أو صلاحيات الصوت.", "error");
             isPlayingAudio = false;
             audioEndTime = 0;
+            shouldProcessRecognition = true;
         });
 
-        // ✅ نحسب متى سينتهي الصوت فعلياً (+ 4 ثواني إضافية للأمان)
         audio.addEventListener("loadedmetadata", () => {
-            const duration = (audio.duration || 10) * 1000; // بالميلي ثانية
-            audioEndTime = Date.now() + duration + 4000; // ✅ +4 ثواني
+            const duration = (audio.duration || 10) * 1000;
+            audioEndTime = Date.now() + duration + 4000;
             console.log(`⏰ الصوت سينتهي بعد ${duration/1000} ثانية + 4 ثواني أمان`);
         }, { once: true });
 
         audio.addEventListener("ended", () => {
             console.log(`🔊 انتهى تشغيل الآية ${ayah.numberInSurah}`);
             
-            // ✅ لا نلغي isPlayingAudio فوراً - ننتظر 4 ثواني إضافية
             setTimeout(() => {
                 isPlayingAudio = false;
-                console.log("✅ تم إلغاء flag الحماية - يمكن بدء الاستماع الآن");
+                shouldProcessRecognition = true;
+                console.log("✅ تم إلغاء flag الحماية");
                 
                 if (playMode === "tilawa") {
                     setTimeout(() => {
@@ -1018,16 +1016,13 @@ function playAyahAudio(index, playMode) {
                             ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                             ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
                             
-                            // ✅ ننتظر 1 ثانية إضافية قبل إعادة الاستماع
                             setTimeout(() => {
                                 if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                                    console.log(`🎤 إعادة تشغيل الاستماع للآية ${expectedAyahIndex + 1}`);
+                                    console.log(`🎤 إعادة تفعيل معالجة الاستماع للآية ${expectedAyahIndex + 1}`);
                                     
                                     listeningDot.classList.add("active");
                                     modeBadge.textContent = "وضع التسميع (استماع)";
                                     setStatus(`🎤 استمع... بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
-                                    
-                                    startRecognition();
                                     
                                     setTimeout(() => {
                                         if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
@@ -1048,7 +1043,7 @@ function playAyahAudio(index, playMode) {
                         }
                     }
                 }
-            }, 4000); // ✅ ننتظر 4 ثواني بعد ended
+            }, 4000);
             
         }, { once: true });
         
@@ -1071,6 +1066,7 @@ function startTilawa() {
     recognizedBox.classList.remove("active");
     isPlayingAudio = false;
     audioEndTime = 0;
+    shouldProcessRecognition = false;
 
     const total = ayahs.length;
     let startIndex = 0;
@@ -1141,7 +1137,8 @@ function initRecognition() {
     rec.lang = "ar-SA";
     rec.continuous = true;
     rec.interimResults = true;
-    rec.maxAlternatives = 3;
+    rec.maxAlternatives = 5;
+    
     return rec;
 }
 
@@ -1157,7 +1154,6 @@ function startTasmi() {
 
     stopCurrentAudio();
     cancelCountdown();
-    stopRecognition();
 
     mode = "tasmi";
     enableMainControls(false);
@@ -1167,6 +1163,7 @@ function startTasmi() {
     recognizedText.textContent = "جارِ الاستماع...";
     isPlayingAudio = false;
     audioEndTime = 0;
+    shouldProcessRecognition = true;
     
     modeBadge.textContent = "وضع التسميع (استماع)";
     modeBadge.className = "mode-badge mode-badge-tasmi";
@@ -1189,12 +1186,6 @@ function startTasmi() {
 }
 
 function startRecognition() {
-    // ✅ فحص قوي - لا نبدأ إذا كان الصوت يعمل
-    if (isAudioActuallyPlaying()) {
-        console.log("⚠️ لا يمكن بدء الاستماع - جارِ تشغيل الصوت");
-        return;
-    }
-    
     if (!recognition) {
         recognition = initRecognition();
         if (!recognition) {
@@ -1206,47 +1197,46 @@ function startRecognition() {
 
         recognition.onstart = () => {
             recognizing = true;
-            if (!isAudioActuallyPlaying()) {
-                listeningDot.classList.add("active");
-                if (expectedAyahIndex < ayahs.length) {
-                    setStatus(`🎤 استمع... بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
-                }
-            }
+            console.log("✅ بدأ الاستماع");
         };
 
         recognition.onerror = (event) => {
-            console.error("speech error", event);
             if (event.error === "not-allowed") {
                 setStatus("تم رفض صلاحية الميكروفون. فعّلها من إعدادات المتصفح.", "error");
                 recognizedText.textContent = "❌ الميكروفون غير مفعّل";
+            } else if (event.error === "no-speech") {
+                console.log("ℹ️ لم يتم اكتشاف كلام");
+            } else if (event.error === "audio-capture") {
+                setStatus("خطأ في الميكروفون. تأكد من الصلاحيات.", "error");
+            } else if (event.error === "network") {
+                console.log("⚠️ خطأ شبكة");
             }
         };
 
         recognition.onend = () => {
             recognizing = false;
-            if (!isAudioActuallyPlaying()) {
-                listeningDot.classList.remove("active");
-            }
             
-            // ✅ نعيد تشغيل الاستماع فقط إذا لم يكن هناك صوت
-            if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                setTimeout(() => {
-                    if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                        try {
-                            recognition.start();
-                            console.log("🔄 إعادة تشغيل الاستماع للآية", expectedAyahIndex + 1);
-                        } catch (e) {
-                            console.warn("Recognition restart:", e);
-                        }
+            if (mode === "tasmi" && !isAudioActuallyPlaying() && shouldProcessRecognition) {
+                if (!recognizing) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        setTimeout(() => {
+                            if (mode === "tasmi" && !recognizing) {
+                                try {
+                                    recognition.start();
+                                } catch (err) {
+                                    console.warn("فشل إعادة الاستماع:", err);
+                                }
+                            }
+                        }, 100);
                     }
-                }, 500);
+                }
             }
         };
 
         recognition.onresult = (event) => {
-            // ✅ نتجاهل أي نتائج إذا كان الصوت يُشغَّل
-            if (isAudioActuallyPlaying()) {
-                console.log("⚠️ تم تجاهل النتائج - جارِ تشغيل الصوت");
+            if (!shouldProcessRecognition || isAudioActuallyPlaying()) {
                 return;
             }
             
@@ -1262,11 +1252,11 @@ function startRecognition() {
                 }
             }
             
-            if (interimTranscript) {
+            if (interimTranscript && shouldProcessRecognition) {
                 recognizedText.textContent = "🎙️ " + interimTranscript;
             }
             
-            if (finalTranscript) {
+            if (finalTranscript && shouldProcessRecognition) {
                 finalTranscript = finalTranscript.trim();
                 recognizedText.textContent = "✅ " + finalTranscript;
                 processRecognizedText(finalTranscript);
@@ -1285,10 +1275,12 @@ function stopRecognition() {
     if (recognition && recognizing) {
         try {
             recognition.stop();
+            console.log("🛑 تم إيقاف الاستماع نهائياً");
         } catch (e) {}
     }
     recognizing = false;
     listeningDot.classList.remove("active");
+    shouldProcessRecognition = false;
 }
 
 function startCountdown() {
@@ -1319,10 +1311,9 @@ function startCountdown() {
         } else {
             cancelCountdown();
             if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${expectedAyahIndex + 1} (لم يقرأها القارئ)`);
+                console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${expectedAyahIndex + 1}`);
                 
-                stopRecognition();
-                recognizedText.innerHTML = `<div style="color: #9ca3af;">🔇 تم إيقاف الاستماع مؤقتاً (جارِ تشغيل الآية)</div>`;
+                recognizedText.innerHTML = `<div style="color: #9ca3af;">🔇 جارِ تشغيل الآية...</div>`;
                 
                 playAyahAudio(expectedAyahIndex, "tasmi");
             }
@@ -1334,12 +1325,11 @@ function cancelCountdown() {
     if (countdownTimer) {
         clearInterval(countdownTimer);
         countdownTimer = null;
-        console.log("⏹️ تم إلغاء العد التنازلي");
     }
 }
 
 function processRecognizedText(text) {
-    if (mode !== "tasmi" || !ayahs.length || isAudioActuallyPlaying()) return;
+    if (mode !== "tasmi" || !ayahs.length || !shouldProcessRecognition || isAudioActuallyPlaying()) return;
 
     const normInput = normalizeArabic(text);
     if (!normInput) return;
@@ -1354,24 +1344,14 @@ function processRecognizedText(text) {
 
     let bestScore = 0;
     let bestIndex = -1;
-    let debugInfo = [];
 
     ayahs.forEach((a, idx) => {
         const score = calculateSimilarity(normInput, a.text);
-        
-        debugInfo.push({
-            ayah: idx + 1,
-            score: (score * 100).toFixed(1) + "%",
-            expected: idx === expectedAyahIndex ? "✅" : ""
-        });
-
         if (score > bestScore) {
             bestScore = score;
             bestIndex = idx;
         }
     });
-
-    console.table(debugInfo.sort((a, b) => parseFloat(b.score) - parseFloat(a.score)).slice(0, 5));
 
     if (bestIndex >= 0 && bestScore >= 0.15) {
         const ayah = ayahs[bestIndex];
@@ -1388,7 +1368,6 @@ function processRecognizedText(text) {
                 updateProgress(expectedAyahIndex + 1, ayahs.length);
                 ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
                 ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
-                console.log(`✅ قرأ الآية ${ayah.numberInSurah} صحيحة - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
                 
                 setTimeout(() => {
                     if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
@@ -1424,19 +1403,16 @@ function processRecognizedText(text) {
                         startCountdown();
                     }
                 }, 1000);
-            } else {
-                updateProgress(ayahs.length, ayahs.length);
             }
             
         } else {
             recognizedText.innerHTML = `<div style="color: #f87171;">❌ الآية ${ayah.numberInSurah} وليست ${expectedAyahIndex + 1}</div>`;
-            setStatus(`⚠️ الآية ${ayah.numberInSurah} ≠ ${expectedAyahIndex + 1}`, "error");
         }
     } else {
         if (bestScore >= 0.10) {
-            recognizedText.innerHTML = `<div style="color: #facc15; font-size: 0.75rem;">⚠️ ${(bestScore * 100).toFixed(0)}% - ربما آية ${bestIndex + 1}؟</div>`;
+            recognizedText.innerHTML = `<div style="color: #facc15; font-size: 0.75rem;">⚠️ ${(bestScore * 100).toFixed(0)}%</div>`;
         } else {
-            recognizedText.innerHTML = `<div style="color: #9ca3af; font-size: 0.7rem;">🎙️ استمر بالقراءة...</div>`;
+            recognizedText.innerHTML = `<div style="color: #9ca3af; font-size: 0.7rem;">🎙️ استمر...</div>`;
         }
     }
 }
@@ -1511,6 +1487,7 @@ btnStop.addEventListener("click", () => {
     ayahInput.disabled = false;
     isPlayingAudio = false;
     audioEndTime = 0;
+    shouldProcessRecognition = false;
 
     listeningDot.classList.remove("active");
     recognizedBox.classList.remove("active");
