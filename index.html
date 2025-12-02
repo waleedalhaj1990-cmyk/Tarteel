@@ -694,6 +694,7 @@ function playAyahAudio(index, playMode) {
                     currentAyahIndex++;
                     if (currentAyahIndex >= ayahs.length) {
                         setStatus("🎉 انتهيت من السورة", "done");
+                        modeBadge.textContent = "مكتمل";
                         mode = "idle";
                         enableMainControls(true);
                     } else {
@@ -718,6 +719,7 @@ function playAyahAudio(index, playMode) {
                         startCountdown();
                     } else {
                         setStatus("🎉 أكملت السورة", "done");
+                        modeBadge.textContent = "مكتمل";
                         mode = "idle";
                         enableMainControls(true);
                         recognizedBox.classList.remove("active");
@@ -753,8 +755,47 @@ function startTilawa() {
     }
 
     currentAyahIndex = startIndex;
-    updateProgress(currentAyahIndex + 1, total);
-    playAyahAudio(currentAyahIndex, "tilawa");
+
+    // ✅ إذا كانت الآية الأولى وليست سورة التوبة - نشغل البسملة
+    if (currentSurah !== "9" && currentAyahIndex === 0) {
+        updateProgress(0, total);
+        playBasmalaThenFirstAyah();
+    } else {
+        updateProgress(currentAyahIndex + 1, total);
+        playAyahAudio(currentAyahIndex, "tilawa");
+    }
+}
+
+function playBasmalaThenFirstAyah() {
+    stopCurrentAudio();
+
+    const basmalaUrl = `https://cdn.islamic.network/quran/audio/128/${currentAudioEdition}/1.mp3`;
+
+    const audio = new Audio(basmalaUrl);
+    currentAudio = audio;
+
+    const basmalaText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+    ayahLabel.textContent = "البسملة";
+    ayahTextBox.textContent = basmalaText;
+
+    setStatus("تشغيل البسملة...", "strong");
+    modeBadge.textContent = "تلاوة";
+    
+    updateProgress(0, ayahs.length);
+
+    audio.play().catch(e => {
+        setStatus("تعذّر تشغيل البسملة", "error");
+        playAyahAudio(currentAyahIndex, "tilawa");
+    });
+
+    audio.addEventListener("ended", () => {
+        setTimeout(() => {
+            if (mode === "tilawa") {
+                updateProgress(1, ayahs.length);
+                playAyahAudio(currentAyahIndex, "tilawa");
+            }
+        }, 500);
+    });
 }
 
 function hasSpeechSupport() {
@@ -868,6 +909,7 @@ function startCountdown() {
 
     if (expectedAyahIndex >= ayahs.length) {
         setStatus("🎉 أكملت السورة", "done");
+        modeBadge.textContent = "مكتمل";
         mode = "idle";
         enableMainControls(true);
         recognizedBox.classList.remove("active");
@@ -945,6 +987,7 @@ function processRecognizedText(text) {
             } else {
                 updateProgress(ayahs.length, ayahs.length);
                 setStatus("🎉 أكملت السورة", "done");
+                modeBadge.textContent = "مكتمل";
                 mode = "idle";
                 enableMainControls(true);
                 recognizedBox.classList.remove("active");
