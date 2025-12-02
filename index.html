@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسميع وتلاوة القرآن - النسخة المُحسَّنة</title>
+    <title>تسميع وتلاوة القرآن</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <style>
@@ -22,20 +22,14 @@
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent !important;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
         }
 
         body {
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             background: radial-gradient(circle at top, #0f172a 0, #020617 60%);
             color: var(--text-main);
-            -webkit-font-smoothing: antialiased;
         }
 
         .app {
@@ -50,7 +44,6 @@
             padding: 1rem 0.8rem 1.2rem;
             box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(148, 163, 184, 0.15);
-            backdrop-filter: blur(12px);
         }
 
         h1 {
@@ -87,9 +80,7 @@
             color: var(--text-sub);
         }
 
-        select,
-        input[type="number"],
-        input[type="range"] {
+        select, input[type="number"], input[type="range"] {
             width: 100%;
             padding: 0.45rem 0.5rem;
             border-radius: 10px;
@@ -98,12 +89,9 @@
             color: var(--text-main);
             font-size: 0.9rem;
             outline: none;
-            -webkit-appearance: none;
-            appearance: none;
         }
 
-        select:disabled,
-        input:disabled {
+        select:disabled, input:disabled {
             opacity: 0.6;
         }
 
@@ -132,9 +120,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.25rem;
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-            outline: none;
-            -webkit-tap-highlight-color: transparent !important;
+            transition: transform 0.1s ease;
         }
 
         .btn span.emoji {
@@ -162,13 +148,10 @@
         .btn:disabled {
             opacity: 0.35;
             cursor: default;
-            transform: none;
-            box-shadow: none;
         }
 
         .btn:not(:disabled):active {
-            transform: translateY(1px) scale(0.98);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            transform: scale(0.98);
         }
 
         .status-row {
@@ -181,59 +164,31 @@
         .status {
             flex: 1;
             font-size: 0.82rem;
-            min-height: 1.1rem;
             color: var(--text-sub);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        .status-strong {
-            color: var(--accent);
-        }
-        .status-warn {
-            color: var(--accent-yellow);
-        }
-        .status-info {
-            color: var(--accent-blue);
-        }
-        .status-done {
-            color: #facc15;
-            font-weight: 600;
-        }
-        .status-error {
-            color: var(--danger);
-        }
+        .status-strong { color: var(--accent); }
+        .status-warn { color: var(--accent-yellow); }
+        .status-info { color: var(--accent-blue); }
+        .status-done { color: #facc15; font-weight: 600; }
+        .status-error { color: var(--danger); }
 
         .listening-indicator {
             width: 14px;
             height: 14px;
             border-radius: 999px;
-            border: 2px solid rgba(74, 222, 128, 0.5);
-            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
-            transform: scale(1);
+            background: var(--accent-light);
             opacity: 0;
         }
 
         .listening-indicator.active {
-            background: var(--accent-light);
             opacity: 1;
             animation: pulse 1.4s infinite;
         }
 
         @keyframes pulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
-            }
-            70% {
-                transform: scale(1.4);
-                box-shadow: 0 0 0 12px rgba(74, 222, 128, 0);
-            }
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
-            }
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
         }
 
         .recognized-text-box {
@@ -245,18 +200,11 @@
             min-height: 2.5rem;
             font-size: 0.85rem;
             color: #bfdbfe;
-            line-height: 1.5;
             display: none;
         }
 
         .recognized-text-box.active {
             display: block;
-        }
-
-        .recognized-label {
-            font-size: 0.7rem;
-            color: var(--text-sub);
-            margin-bottom: 0.2rem;
         }
 
         .progress-wrapper {
@@ -290,47 +238,24 @@
         .ayah-box {
             margin-top: 0.8rem;
             border-radius: 14px;
-            padding: 0.6rem 0.6rem 0.5rem;
+            padding: 0.6rem;
             background: radial-gradient(circle at top right, rgba(22, 163, 74, 0.15), rgba(15, 23, 42, 0.95));
             border: 1px solid rgba(148, 163, 184, 0.18);
-            min-height: 3.1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
+            min-height: 3rem;
         }
 
         .ayah-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             font-size: 0.78rem;
             color: var(--text-sub);
+            margin-bottom: 0.3rem;
         }
 
         .ayah-text {
             font-size: 1.02rem;
             line-height: 1.7;
-            word-spacing: 0.15em;
             text-align: justify;
-        }
-
-        .ayah-word {
-            display: inline-block;
-            padding: 0 0.12rem;
-            border-radius: 6px;
-            transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
-        }
-
-        .ayah-word.active-tilawa {
-            background: rgba(34, 197, 94, 0.25);
-            color: #bbf7d0;
-            transform: translateY(-1px);
-        }
-
-        .ayah-word.active-tasmi {
-            background: rgba(59, 130, 246, 0.30);
-            color: #dbeafe;
-            transform: translateY(-1px);
         }
 
         .mode-badge {
@@ -341,30 +266,11 @@
             color: var(--text-sub);
         }
 
-        .mode-badge-tilawa {
-            border-color: rgba(34, 197, 94, 0.6);
-            color: #bbf7d0;
-        }
-        .mode-badge-tasmi {
-            border-color: rgba(59, 130, 246, 0.6);
-            color: #bfdbfe;
-        }
-
         .footer-note {
             margin-top: 0.7rem;
             font-size: 0.72rem;
             color: var(--text-sub);
             text-align: center;
-            line-height: 1.4;
-        }
-
-        @media (min-width: 520px) {
-            .app {
-                padding-top: 1.5rem;
-            }
-            .card {
-                padding: 1.2rem 1.1rem 1.3rem;
-            }
         }
     </style>
 </head>
@@ -391,20 +297,14 @@
                 <label for="reciterSelect">اختيار القارئ</label>
                 <select id="reciterSelect">
                     <option value="ar.alafasy">مشاري العفاسي</option>
-                    <option value="ar.abdulbasitmurattal">عبد الباسط (مرتل)</option>
-                    <option value="ar.abdurrahmaansudais">عبد الرحمن السديس</option>
-                    <option value="ar.shaatree">أبو بكر الشاطري</option>
-                    <option value="ar.hanirifai">هاني الرفاعي</option>
-                    <option value="ar.husary">محمود الحصري</option>
-                    <option value="ar.minshawi">محمد المنشاوي</option>
-                    <option value="ar.muhammadayyoub">محمد أيوب</option>
-                    <option value="ar.saoodshuraym">سعود الشريم</option>
-                    <option value="ar.hudhaify">علي الحذيفي</option>
+                    <option value="ar.abdulbasitmurattal">عبد الباسط</option>
+                    <option value="ar.abdurrahmaansudais">السديس</option>
+                    <option value="ar.shaatree">الشاطري</option>
                 </select>
             </div>
 
             <div class="field">
-                <label for="delayRange">منزلق التأخير (إذا لم يقرأ القارئ)</label>
+                <label for="delayRange">منزلق التأخير (إذا لم تقرأ)</label>
                 <input id="delayRange" type="range" min="5" max="20" step="1" value="10">
                 <div id="delayValue" class="range-value">مدة الانتظار: 10 ثانية</div>
             </div>
@@ -428,8 +328,8 @@
         </div>
 
         <div id="recognizedBox" class="recognized-text-box">
-            <div class="recognized-label">🎙️ النص المُتعرَّف عليه:</div>
-            <div id="recognizedText" style="color: #dbeafe;">جارِ الاستماع...</div>
+            <div style="font-size:0.7rem;color:#9ca3af;margin-bottom:0.2rem">🎙️ النص المُتعرَّف:</div>
+            <div id="recognizedText">جارِ الاستماع...</div>
         </div>
 
         <div class="progress-wrapper">
@@ -451,7 +351,7 @@
         </div>
 
         <div class="footer-note">
-            يعتمد على Web Speech API (كروم) • تأكد من منح صلاحية الميكروفون
+            يعتمد على Web Speech API (كروم) • منح صلاحية الميكروفون مطلوب
         </div>
     </div>
 </div>
@@ -586,7 +486,6 @@ const delayValue = document.getElementById("delayValue");
 const btnTasmi = document.getElementById("btnTasmi");
 const btnTilawa = document.getElementById("btnTilawa");
 const btnStop = document.getElementById("btnStop");
-
 const statusMessage = document.getElementById("statusMessage");
 const listeningDot = document.getElementById("listeningDot");
 const progressInner = document.getElementById("progressInner");
@@ -608,16 +507,6 @@ let recognizing = false;
 let countdownTimer = null;
 let countdownSeconds = 0;
 let currentAudio = null;
-let wordTimer = null;
-let fadeOutTimer = null;
-
-let shouldProcessRecognition = true;
-let isPlayingAudio = false;
-let audioEndTime = 0;
-
-document.addEventListener('touchstart', function(e) {}, {passive: true});
-document.addEventListener('touchmove', function(e) {}, {passive: true});
-document.addEventListener('touchend', function(e) {}, {passive: true});
 
 function normalizeArabic(text) {
     if (!text) return "";
@@ -636,40 +525,21 @@ function normalizeArabic(text) {
 
 function removeBasmalaFromText(text) {
     if (!text) return text;
-    
     const words = text.split(/\s+/);
-    
-    if (words.length <= 4) {
-        return text;
-    }
+    if (words.length <= 4) return text;
     
     const firstWord = normalizeArabic(words[0] || '');
     const secondWord = normalizeArabic(words[1] || '');
     
     if (firstWord.includes('بسم') && secondWord.includes('الله')) {
-        const result = words.slice(4).join(' ').trim();
-        console.log("✅ تمت إزالة البسملة من الآية الأولى");
-        return result;
+        return words.slice(4).join(' ').trim();
     }
-    
     return text;
 }
 
 function splitWords(text) {
     const clean = text.replace(/\s+/g, " ").trim();
     return clean ? clean.split(" ") : [];
-}
-
-function calculateBasicSimilarity(words1, words2) {
-    if (!words1.length || !words2.length) return 0;
-    
-    let matches = 0;
-    const set2 = new Set(words2);
-    words1.forEach(w => {
-        if (w.length >= 2 && set2.has(w)) matches++;
-    });
-    
-    return matches / Math.max(words1.length, words2.length);
 }
 
 function calculateSimilarity(text1, text2) {
@@ -683,55 +553,27 @@ function calculateSimilarity(text1, text2) {
     const filtered2 = words2.filter(w => w.length >= 2 && !stopWords.has(w));
     
     if (!filtered1.length || !filtered2.length) {
-        return calculateBasicSimilarity(words1, words2);
+        let matches = 0;
+        const set2 = new Set(words2);
+        words1.forEach(w => { if (w.length >= 2 && set2.has(w)) matches++; });
+        return matches / Math.max(words1.length, words2.length);
     }
     
     let exactMatches = 0;
     const set2 = new Set(filtered2);
-    filtered1.forEach(w => {
-        if (set2.has(w)) exactMatches++;
-    });
-    
-    let partialMatches = 0;
-    filtered1.forEach(w1 => {
-        filtered2.forEach(w2 => {
-            if (w1.length >= 3 && w2.length >= 3) {
-                if (w1.includes(w2) || w2.includes(w1)) {
-                    partialMatches += 0.7;
-                }
-            }
-        });
-    });
-    
-    let lcsLength = 0;
-    for (let i = 0; i < filtered1.length; i++) {
-        for (let j = 0; j < filtered2.length; j++) {
-            if (filtered1[i] === filtered2[j]) {
-                let k = 1;
-                while (i + k < filtered1.length && j + k < filtered2.length && 
-                       filtered1[i + k] === filtered2[j + k]) {
-                    k++;
-                }
-                lcsLength = Math.max(lcsLength, k);
-            }
-        }
-    }
+    filtered1.forEach(w => { if (set2.has(w)) exactMatches++; });
     
     const score1 = exactMatches / filtered1.length;
     const score2 = exactMatches / filtered2.length;
-    const score3 = (exactMatches + partialMatches) / Math.max(filtered1.length, filtered2.length);
-    const score4 = lcsLength / Math.max(filtered1.length, filtered2.length);
     
-    return Math.max(score1, score2, score3, score4);
+    return Math.max(score1, score2);
 }
 
 function isBasmala(text) {
     const norm = normalizeArabic(text);
     const basmalaWords = ["بسم", "الله", "الرحمن", "الرحيم"];
     let count = 0;
-    basmalaWords.forEach(w => {
-        if (norm.includes(w)) count++;
-    });
+    basmalaWords.forEach(w => { if (norm.includes(w)) count++; });
     return count >= 3;
 }
 
@@ -740,35 +582,27 @@ function loadSurahList() {
     SURAHS.forEach(s => {
         const opt = document.createElement("option");
         opt.value = s.number;
-        opt.textContent = `${s.number}. ${s.englishName} - ${s.name}`;
-        opt.dataset.ayahs = s.ayahs;
+        opt.textContent = `${s.number}. ${s.name}`;
         surahSelect.appendChild(opt);
     });
-    setStatus("اختر السورة ثم اختر الوضع: تسميع أو تلاوة", "normal");
+    setStatus("اختر السورة ثم اختر الوضع", "normal");
 }
 
 async function loadSurah(surahNumber) {
     if (!surahNumber) return;
     try {
-        setStatus("جارِ تحميل نصوص وآيات السورة...", "info");
+        setStatus("جارِ تحميل السورة...", "info");
         ayahs = [];
         currentSurah = null;
 
         const textUrl = `${API_BASE}/surah/${surahNumber}/${DEFAULT_TEXT_EDITION}`;
         const audioUrl = `${API_BASE}/surah/${surahNumber}/${currentAudioEdition}`;
 
-        const [textResp, audioResp] = await Promise.all([
-            fetch(textUrl),
-            fetch(audioUrl)
-        ]);
-
-        const [textJson, audioJson] = await Promise.all([
-            textResp.json(),
-            audioResp.json()
-        ]);
+        const [textResp, audioResp] = await Promise.all([fetch(textUrl), fetch(audioUrl)]);
+        const [textJson, audioJson] = await Promise.all([textResp.json(), audioResp.json()]);
 
         if (textJson.code !== 200 || audioJson.code !== 200) {
-            throw new Error("فشل تحميل السورة من الخادم");
+            throw new Error("فشل تحميل السورة");
         }
 
         const textAyahs = textJson.data.ayahs;
@@ -776,7 +610,6 @@ async function loadSurah(surahNumber) {
 
         ayahs = textAyahs.map((a, idx) => {
             const audioAyah = audioAyahs[idx] || {};
-            
             let ayahText = a.text;
             
             if (idx === 0 && surahNumber !== "9") {
@@ -786,7 +619,6 @@ async function loadSurah(surahNumber) {
             return {
                 numberInSurah: a.numberInSurah,
                 text: ayahText,
-                normalizedText: normalizeArabic(ayahText),
                 audioUrl: audioAyah.audio || ""
             };
         });
@@ -797,12 +629,10 @@ async function loadSurah(surahNumber) {
 
         updateProgress(0, ayahs.length);
         ayahLabel.textContent = "السورة جاهزة";
-        ayahTextBox.textContent = "ابدأ التسميع أو التلاوة لعرض الآيات.";
-
+        ayahTextBox.textContent = "ابدأ التسميع أو التلاوة";
         setStatus("السورة جاهزة ✔️", "strong");
     } catch (e) {
-        console.error(e);
-        setStatus("تعذّر تحميل السورة. تأكد من الاتصال بالإنترنت.", "error");
+        setStatus("تعذّر تحميل السورة", "error");
     }
 }
 
@@ -814,118 +644,12 @@ function updateProgress(currentIndex, total) {
     progressPercent.textContent = percent + "%";
 }
 
-function clearWordHighlight() {
-    if (wordTimer) {
-        clearInterval(wordTimer);
-        wordTimer = null;
-    }
-}
-
-function renderAyahWords(ayahText) {
-    clearWordHighlight();
-    ayahTextBox.innerHTML = "";
-    if (!ayahText) return;
-
-    const words = splitWords(ayahText);
-    words.forEach((w, idx) => {
-        const span = document.createElement("span");
-        span.textContent = w + " ";
-        span.className = "ayah-word";
-        span.dataset.index = idx;
-        ayahTextBox.appendChild(span);
-    });
-}
-
-function animateWordsWithAudio(audio, modeKind) {
-    clearWordHighlight();
-
-    const spans = Array.from(document.querySelectorAll(".ayah-word"));
-    if (!spans.length || !audio) return;
-
-    const activeClass = modeKind === "tilawa" ? "active-tilawa" : "active-tasmi";
-
-    function clearActive() {
-        spans.forEach(s => s.classList.remove("active-tilawa", "active-tasmi"));
-    }
-
-    let idx = 0;
-    const startAnimation = () => {
-        clearActive();
-        const duration = audio.duration || 10;
-        const step = duration / (spans.length || 1);
-
-        wordTimer = setInterval(() => {
-            clearActive();
-            if (idx >= spans.length) {
-                clearInterval(wordTimer);
-                wordTimer = null;
-                return;
-            }
-            spans[idx].classList.add(activeClass);
-            idx++;
-        }, step * 1000);
-    };
-
-    if (audio.readyState >= 1) {
-        startAnimation();
-    } else {
-        audio.addEventListener("loadedmetadata", () => {
-            startAnimation();
-        }, { once: true });
-    }
-
-    audio.addEventListener("ended", () => {
-        clearActive();
-        clearWordHighlight();
-    }, { once: false });
-}
-
-function fadeOutAudio(audio, duration = 200) {
-    if (!audio) return Promise.resolve();
-    
-    return new Promise((resolve) => {
-        const originalVolume = audio.volume;
-        const steps = 10;
-        const stepTime = duration / steps;
-        const volumeStep = originalVolume / steps;
-        
-        let currentStep = 0;
-        
-        if (fadeOutTimer) {
-            clearInterval(fadeOutTimer);
-        }
-        
-        fadeOutTimer = setInterval(() => {
-            currentStep++;
-            audio.volume = Math.max(0, originalVolume - (volumeStep * currentStep));
-            
-            if (currentStep >= steps || audio.volume <= 0) {
-                clearInterval(fadeOutTimer);
-                fadeOutTimer = null;
-                audio.pause();
-                audio.currentTime = 0;
-                audio.volume = originalVolume;
-                resolve();
-            }
-        }, stepTime);
-    });
-}
-
-async function stopCurrentAudio() {
+function stopCurrentAudio() {
     if (currentAudio) {
-        await fadeOutAudio(currentAudio, 150);
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
         currentAudio = null;
     }
-    clearWordHighlight();
-    isPlayingAudio = false;
-    audioEndTime = 0;
-}
-
-function isAudioActuallyPlaying() {
-    if (!currentAudio) return false;
-    if (isPlayingAudio) return true;
-    if (Date.now() < audioEndTime) return true;
-    return false;
 }
 
 function playAyahAudio(index, playMode) {
@@ -933,139 +657,92 @@ function playAyahAudio(index, playMode) {
 
     const ayah = ayahs[index];
     if (!ayah.audioUrl) {
-        setStatus("لا يوجد رابط صوت لهذه الآية في الإصدار الحالي.", "error");
+        setStatus("لا يوجد رابط صوت", "error");
         return;
     }
 
     stopCurrentAudio();
-    
-    if (playMode === "tasmi") {
-        shouldProcessRecognition = false;
+
+    const audio = new Audio(ayah.audioUrl);
+    currentAudio = audio;
+
+    ayahLabel.textContent = `الآية ${ayah.numberInSurah}`;
+    ayahTextBox.textContent = ayah.text;
+
+    if (playMode === "tilawa") {
+        setStatus(`📖 تلاوة آية ${ayah.numberInSurah}`, "strong");
+        modeBadge.textContent = "تلاوة";
+        updateProgress(ayah.numberInSurah, ayahs.length);
+    } else {
+        setStatus(`📻 تشغيل آية ${ayah.numberInSurah}`, "info");
+        modeBadge.textContent = "تسميع (تشغيل)";
+        updateProgress(ayah.numberInSurah, ayahs.length);
         listeningDot.classList.remove("active");
-        isPlayingAudio = true;
-        console.log("🔒 بدأ تشغيل الآية - سيتم تجاهل نتائج الاستماع");
+        if (recognition && recognizing) {
+            recognition.stop();
+        }
     }
 
-    setTimeout(() => {
-        const audio = new Audio(ayah.audioUrl);
-        audio.volume = 1.0;
-        currentAudio = audio;
+    audio.play().catch(e => {
+        setStatus("تعذّر تشغيل الصوت", "error");
+    });
 
-        ayahLabel.textContent = `الآية ${ayah.numberInSurah}`;
-        renderAyahWords(ayah.text);
-        animateWordsWithAudio(audio, playMode);
-
+    audio.addEventListener("ended", () => {
         if (playMode === "tilawa") {
-            setStatus(`📖 تلاوة آية ${ayah.numberInSurah}`, "strong");
-            modeBadge.textContent = "وضع التلاوة";
-            modeBadge.className = "mode-badge mode-badge-tilawa";
-            updateProgress(ayah.numberInSurah, ayahs.length);
-        } else {
-            setStatus(`📻 تشغيل آية ${ayah.numberInSurah} (لم يقرأها القارئ)`, "info");
-            modeBadge.textContent = "وضع التسميع (تشغيل)";
-            modeBadge.className = "mode-badge mode-badge-tasmi";
-            updateProgress(ayah.numberInSurah, ayahs.length);
+            setTimeout(() => {
+                if (mode === "tilawa") {
+                    currentAyahIndex++;
+                    if (currentAyahIndex >= ayahs.length) {
+                        setStatus("🎉 انتهيت من السورة", "done");
+                        mode = "idle";
+                        enableMainControls(true);
+                    } else {
+                        playAyahAudio(currentAyahIndex, "tilawa");
+                    }
+                }
+            }, 500);
+        } else if (playMode === "tasmi") {
+            setTimeout(() => {
+                if (mode === "tasmi") {
+                    expectedAyahIndex++;
+                    if (expectedAyahIndex < ayahs.length) {
+                        updateProgress(expectedAyahIndex + 1, ayahs.length);
+                        ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
+                        ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
+                        listeningDot.classList.add("active");
+                        modeBadge.textContent = "تسميع (استماع)";
+                        setStatus(`🎤 بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
+                        if (recognition && !recognizing) {
+                            recognition.start();
+                        }
+                        startCountdown();
+                    } else {
+                        setStatus("🎉 أكملت السورة", "done");
+                        mode = "idle";
+                        enableMainControls(true);
+                        recognizedBox.classList.remove("active");
+                        if (recognition) recognition.stop();
+                    }
+                }
+            }, 1000);
         }
-
-        audio.play().catch(e => {
-            console.error(e);
-            setStatus("تعذّر تشغيل الصوت. تحقق من الاتصال أو صلاحيات الصوت.", "error");
-            isPlayingAudio = false;
-            audioEndTime = 0;
-            shouldProcessRecognition = true;
-        });
-
-        audio.addEventListener("loadedmetadata", () => {
-            const duration = (audio.duration || 10) * 1000;
-            audioEndTime = Date.now() + duration + 3000;
-            console.log(`⏰ الصوت سينتهي بعد ${duration/1000} ثانية + 3 ثواني أمان`);
-        }, { once: true });
-
-        audio.addEventListener("ended", () => {
-            console.log(`🔊 انتهى تشغيل الآية ${ayah.numberInSurah}`);
-            
-            if (playMode === "tilawa") {
-                isPlayingAudio = false;
-                shouldProcessRecognition = false;
-                
-                setTimeout(() => {
-                    if (mode === "tilawa") {
-                        currentAyahIndex++;
-                        if (currentAyahIndex >= ayahs.length) {
-                            setStatus("🎉 إكمال! انتهيت من السورة.", "done");
-                            modeBadge.textContent = "مكتمل";
-                            updateProgress(ayahs.length, ayahs.length);
-                            mode = "idle";
-                            enableMainControls(true);
-                        } else {
-                            playAyahAudio(currentAyahIndex, "tilawa");
-                        }
-                    }
-                }, 300);
-                
-            } else if (playMode === "tasmi") {
-                setTimeout(() => {
-                    isPlayingAudio = false;
-                    shouldProcessRecognition = true;
-                    console.log("✅ تم إلغاء flag الحماية");
-                    
-                    if (mode === "tasmi") {
-                        expectedAyahIndex++;
-                        console.log(`✅ انتهى التشغيل - الآن ننتظر الآية ${expectedAyahIndex + 1}`);
-                        
-                        if (expectedAyahIndex < ayahs.length) {
-                            updateProgress(expectedAyahIndex + 1, ayahs.length);
-                            ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
-                            ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
-                            
-                            listeningDot.classList.add("active");
-                            modeBadge.textContent = "وضع التسميع (استماع)";
-                            setStatus(`🎤 استمع... بانتظار الآية ${expectedAyahIndex + 1}`, "strong");
-                            recognizedText.textContent = "جارِ الاستماع...";
-                            
-                            console.log(`🎤 تم تفعيل الاستماع للآية ${expectedAyahIndex + 1}`);
-                            
-                            setTimeout(() => {
-                                if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                                    startCountdown();
-                                }
-                            }, 500);
-                            
-                        } else {
-                            setStatus("🎉 مبروك! أكملت السورة.", "done");
-                            modeBadge.textContent = "مكتمل";
-                            updateProgress(ayahs.length, ayahs.length);
-                            mode = "idle";
-                            enableMainControls(true);
-                            recognizedBox.classList.remove("active");
-                            stopRecognition();
-                        }
-                    }
-                }, 2500);
-            }
-            
-        }, { once: true });
-        
-    }, 200);
+    });
 }
 
 function startTilawa() {
     if (!currentSurah || !ayahs.length) {
-        setStatus("اختر السورة أولاً، يتم بعدها تحميل الآيات.", "error");
+        setStatus("اختر السورة أولاً", "error");
         return;
     }
+    
     stopCurrentAudio();
     cancelCountdown();
-    stopRecognition();
+    if (recognition) recognition.stop();
 
     mode = "tilawa";
     enableMainControls(false);
-    ayahInput.disabled = false;
-    listeningDot.classList.remove("active");
     recognizedBox.classList.remove("active");
-    isPlayingAudio = false;
-    audioEndTime = 0;
-    shouldProcessRecognition = false;
+    listeningDot.classList.remove("active");
 
     const total = ayahs.length;
     let startIndex = 0;
@@ -1076,52 +753,8 @@ function startTilawa() {
     }
 
     currentAyahIndex = startIndex;
-
-    if (currentSurah !== "9" && currentAyahIndex === 0) {
-        updateProgress(0, total);
-        playBasmalaThenFirstAyah();
-    } else {
-        updateProgress(currentAyahIndex + 1, total);
-        playAyahAudio(currentAyahIndex, "tilawa");
-    }
-}
-
-function playBasmalaThenFirstAyah() {
-    stopCurrentAudio();
-
-    const basmalaUrl = `https://cdn.islamic.network/quran/audio/128/${currentAudioEdition}/1.mp3`;
-
-    setTimeout(() => {
-        const audio = new Audio(basmalaUrl);
-        audio.volume = 1.0;
-        currentAudio = audio;
-
-        const basmalaText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
-        ayahLabel.textContent = "البسملة";
-        renderAyahWords(basmalaText);
-        animateWordsWithAudio(audio, "tilawa");
-
-        setStatus("تشغيل البسملة...", "strong");
-        modeBadge.textContent = "وضع التلاوة";
-        modeBadge.className = "mode-badge mode-badge-tilawa";
-        
-        updateProgress(0, ayahs.length);
-
-        audio.play().catch(e => {
-            console.error(e);
-            setStatus("تعذّر تشغيل البسملة، سيتم البدء من الآية الأولى مباشرة.", "error");
-            playAyahAudio(currentAyahIndex, "tilawa");
-        });
-
-        audio.addEventListener("ended", () => {
-            setTimeout(() => {
-                if (mode === "tilawa") {
-                    updateProgress(1, ayahs.length);
-                    playAyahAudio(currentAyahIndex, "tilawa");
-                }
-            }, 300);
-        });
-    }, 200);
+    updateProgress(currentAyahIndex + 1, total);
+    playAyahAudio(currentAyahIndex, "tilawa");
 }
 
 function hasSpeechSupport() {
@@ -1134,20 +767,20 @@ function initRecognition() {
 
     const rec = new SpeechRecognition();
     rec.lang = "ar-SA";
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.maxAlternatives = 5;
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
     
     return rec;
 }
 
 function startTasmi() {
     if (!hasSpeechSupport()) {
-        setStatus("المتصفح لا يدعم Web Speech API. جرّب متصفح كروم على أندرويد.", "error");
+        setStatus("المتصفح لا يدعم Web Speech API", "error");
         return;
     }
     if (!currentSurah || !ayahs.length) {
-        setStatus("اختر السورة أولاً، ثم اضغط تسميع.", "error");
+        setStatus("اختر السورة أولاً", "error");
         return;
     }
 
@@ -1160,20 +793,14 @@ function startTasmi() {
     listeningDot.classList.add("active");
     recognizedBox.classList.add("active");
     recognizedText.textContent = "جارِ الاستماع...";
-    isPlayingAudio = false;
-    audioEndTime = 0;
-    shouldProcessRecognition = true;
     
-    modeBadge.textContent = "وضع التسميع (استماع)";
-    modeBadge.className = "mode-badge mode-badge-tasmi";
+    modeBadge.textContent = "تسميع (استماع)";
 
     expectedAyahIndex = 0;
     updateProgress(expectedAyahIndex + 1, ayahs.length);
 
     ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
     ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
-
-    console.log("🎤 بدأ وضع التسميع - بانتظار قراءة الآية 1");
     
     startRecognition();
     
@@ -1181,14 +808,14 @@ function startTasmi() {
         if (mode === "tasmi" && expectedAyahIndex === 0) {
             startCountdown();
         }
-    }, 2000);
+    }, 1500);
 }
 
 function startRecognition() {
     if (!recognition) {
         recognition = initRecognition();
         if (!recognition) {
-            setStatus("تعذّر تهيئة التعرف على الصوت. تحقق من المتصفح والصلاحيات.", "error");
+            setStatus("تعذّر تهيئة التعرف على الصوت", "error");
             mode = "idle";
             enableMainControls(true);
             return;
@@ -1196,124 +823,68 @@ function startRecognition() {
 
         recognition.onstart = () => {
             recognizing = true;
-            console.log("✅ بدأ الاستماع");
         };
 
         recognition.onerror = (event) => {
             if (event.error === "not-allowed") {
-                setStatus("تم رفض صلاحية الميكروفون. فعّلها من إعدادات المتصفح.", "error");
+                setStatus("تم رفض صلاحية الميكروفون", "error");
                 recognizedText.textContent = "❌ الميكروفون غير مفعّل";
-            } else if (event.error === "no-speech") {
-                console.log("ℹ️ لم يتم اكتشاف كلام");
-            } else if (event.error === "audio-capture") {
-                setStatus("خطأ في الميكروفون. تأكد من الصلاحيات.", "error");
-            } else if (event.error === "network") {
-                console.log("⚠️ خطأ شبكة");
             }
         };
 
         recognition.onend = () => {
             recognizing = false;
-            
-            if (mode === "tasmi" && !isAudioActuallyPlaying() && shouldProcessRecognition) {
-                if (!recognizing) {
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        setTimeout(() => {
-                            if (mode === "tasmi" && !recognizing) {
-                                try {
-                                    recognition.start();
-                                } catch (err) {
-                                    console.warn("فشل إعادة الاستماع:", err);
-                                }
-                            }
-                        }, 100);
+            if (mode === "tasmi" && !currentAudio) {
+                setTimeout(() => {
+                    if (mode === "tasmi" && !recognizing) {
+                        try {
+                            recognition.start();
+                        } catch (e) {}
                     }
-                }
+                }, 300);
             }
         };
 
         recognition.onresult = (event) => {
-            if (!shouldProcessRecognition || isAudioActuallyPlaying()) {
-                return;
-            }
+            if (mode !== "tasmi" || currentAudio) return;
             
-            let interimTranscript = "";
-            let finalTranscript = "";
-            
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                const res = event.results[i];
-                if (res.isFinal) {
-                    finalTranscript += res[0].transcript;
-                } else {
-                    interimTranscript += res[0].transcript;
-                }
-            }
-            
-            if (interimTranscript && shouldProcessRecognition) {
-                recognizedText.textContent = "🎙️ " + interimTranscript;
-            }
-            
-            if (finalTranscript && shouldProcessRecognition) {
-                finalTranscript = finalTranscript.trim();
-                recognizedText.textContent = "✅ " + finalTranscript;
-                processRecognizedText(finalTranscript);
-            }
+            const transcript = event.results[0][0].transcript.trim();
+            recognizedText.textContent = "✅ " + transcript;
+            processRecognizedText(transcript);
         };
     }
 
     try {
         recognition.start();
-    } catch (e) {
-        console.warn("Recognition already started", e);
-    }
-}
-
-function stopRecognition() {
-    if (recognition && recognizing) {
-        try {
-            recognition.stop();
-            console.log("🛑 تم إيقاف الاستماع نهائياً");
-        } catch (e) {}
-    }
-    recognizing = false;
-    listeningDot.classList.remove("active");
-    shouldProcessRecognition = false;
+    } catch (e) {}
 }
 
 function startCountdown() {
     cancelCountdown();
-    if (mode !== "tasmi" || isAudioActuallyPlaying()) return;
+    if (mode !== "tasmi" || currentAudio) return;
     
     const delaySec = parseInt(delayRange.value, 10) || 10;
     countdownSeconds = delaySec;
 
     if (expectedAyahIndex >= ayahs.length) {
-        setStatus("🎉 مبروك! أكملت السورة.", "done");
-        modeBadge.textContent = "مكتمل";
-        updateProgress(ayahs.length, ayahs.length);
+        setStatus("🎉 أكملت السورة", "done");
         mode = "idle";
         enableMainControls(true);
         recognizedBox.classList.remove("active");
-        stopRecognition();
+        if (recognition) recognition.stop();
         return;
     }
 
-    setStatus(`⏱️ ${countdownSeconds}ث - إذا لم تقرأ سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
-    console.log(`⏱️ بدأ العد التنازلي ${countdownSeconds} ثانية`);
+    setStatus(`⏱️ ${countdownSeconds}ث - سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
 
     countdownTimer = setInterval(() => {
         countdownSeconds--;
         if (countdownSeconds > 0) {
-            setStatus(`⏱️ ${countdownSeconds}ث - إذا لم تقرأ سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
+            setStatus(`⏱️ ${countdownSeconds}ث - سيتم تشغيل الآية ${expectedAyahIndex + 1}`, "warn");
         } else {
             cancelCountdown();
-            if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                console.log(`🔊 انتهى العد - سيتم تشغيل الآية ${expectedAyahIndex + 1}`);
-                
-                recognizedText.innerHTML = `<div style="color: #9ca3af;">🔇 جارِ تشغيل الآية...</div>`;
-                
+            if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !currentAudio) {
+                recognizedText.textContent = "🔇 جارِ تشغيل الآية...";
                 playAyahAudio(expectedAyahIndex, "tasmi");
             }
         }
@@ -1328,18 +899,15 @@ function cancelCountdown() {
 }
 
 function processRecognizedText(text) {
-    if (mode !== "tasmi" || !ayahs.length || !shouldProcessRecognition || isAudioActuallyPlaying()) return;
+    if (mode !== "tasmi" || !ayahs.length || currentAudio) return;
 
     const normInput = normalizeArabic(text);
     if (!normInput) return;
 
     if (isBasmala(text)) {
-        console.log("🔸 تم تجاهل البسملة");
-        recognizedText.innerHTML = `<div style="color: #facc15;">🔸 البسملة (لا تُحسب)</div>`;
+        recognizedText.textContent = "🔸 البسملة (لا تُحسب)";
         return;
     }
-
-    console.log("🎤 النص المُتعرَّف عليه:", text);
 
     let bestScore = 0;
     let bestIndex = -1;
@@ -1358,8 +926,8 @@ function processRecognizedText(text) {
         if (bestIndex === expectedAyahIndex) {
             cancelCountdown();
             
-            setStatus(`✅ صحيح! الآية ${ayah.numberInSurah} (${(bestScore * 100).toFixed(0)}%)`, "strong");
-            recognizedText.innerHTML = `<div style="color: #4ade80;">✅ الآية ${ayah.numberInSurah} صحيحة ✓</div>`;
+            setStatus(`✅ صحيح! الآية ${ayah.numberInSurah}`, "strong");
+            recognizedText.textContent = `✅ الآية ${ayah.numberInSurah} صحيحة`;
             
             expectedAyahIndex++;
             
@@ -1369,49 +937,21 @@ function processRecognizedText(text) {
                 ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
                 
                 setTimeout(() => {
-                    if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
+                    if (mode === "tasmi" && expectedAyahIndex < ayahs.length) {
                         startCountdown();
                     }
                 }, 1000);
                 
             } else {
                 updateProgress(ayahs.length, ayahs.length);
-                setStatus("🎉 مبروك! أكملت السورة.", "done");
-                modeBadge.textContent = "مكتمل";
+                setStatus("🎉 أكملت السورة", "done");
                 mode = "idle";
                 enableMainControls(true);
                 recognizedBox.classList.remove("active");
-                stopRecognition();
+                if (recognition) recognition.stop();
             }
-            
-        } else if (bestIndex > expectedAyahIndex && bestIndex <= expectedAyahIndex + 2) {
-            cancelCountdown();
-            
-            recognizedText.innerHTML = `<div style="color: #facc15;">⚠️ قفزت من ${expectedAyahIndex + 1} إلى ${ayah.numberInSurah}</div>`;
-            setStatus(`⚠️ قفزت إلى الآية ${ayah.numberInSurah}`, "warn");
-            
-            expectedAyahIndex = bestIndex + 1;
-            
-            if (expectedAyahIndex < ayahs.length) {
-                updateProgress(expectedAyahIndex + 1, ayahs.length);
-                ayahLabel.textContent = `بانتظار الآية ${expectedAyahIndex + 1}`;
-                ayahTextBox.textContent = ayahs[expectedAyahIndex].text;
-                
-                setTimeout(() => {
-                    if (mode === "tasmi" && expectedAyahIndex < ayahs.length && !isAudioActuallyPlaying()) {
-                        startCountdown();
-                    }
-                }, 1000);
-            }
-            
         } else {
-            recognizedText.innerHTML = `<div style="color: #f87171;">❌ الآية ${ayah.numberInSurah} وليست ${expectedAyahIndex + 1}</div>`;
-        }
-    } else {
-        if (bestScore >= 0.10) {
-            recognizedText.innerHTML = `<div style="color: #facc15; font-size: 0.75rem;">⚠️ ${(bestScore * 100).toFixed(0)}%</div>`;
-        } else {
-            recognizedText.innerHTML = `<div style="color: #9ca3af; font-size: 0.7rem;">🎙️ استمر...</div>`;
+            recognizedText.textContent = `❌ الآية ${ayah.numberInSurah} وليست ${expectedAyahIndex + 1}`;
         }
     }
 }
@@ -1432,6 +972,7 @@ function enableMainControls(enabled) {
     btnStop.disabled = false;
     surahSelect.disabled = !enabled;
     reciterSelect.disabled = !enabled;
+    if (enabled) ayahInput.disabled = false;
 }
 
 delayRange.addEventListener("input", () => {
@@ -1444,9 +985,9 @@ surahSelect.addEventListener("change", async () => {
         currentSurah = null;
         ayahs = [];
         updateProgress(0, 0);
-        ayahLabel.textContent = "لا توجد آية معروضة";
+        ayahLabel.textContent = "لا توجد آية";
         ayahTextBox.textContent = "";
-        setStatus("اختر سورة للبدء.", "normal");
+        setStatus("اختر سورة", "normal");
         return;
     }
     await loadSurah(val);
@@ -1456,14 +997,12 @@ reciterSelect.addEventListener("change", async () => {
     currentAudioEdition = reciterSelect.value;
     if (mode === "idle" && currentSurah) {
         await loadSurah(currentSurah);
-    } else {
-        setStatus("سيتم استخدام القارئ الجديد عند إعادة تحميل السورة أو بدء وضع جديد.", "info");
     }
 });
 
 btnTilawa.addEventListener("click", () => {
     if (!surahSelect.value) {
-        setStatus("اختر السورة أولاً.", "error");
+        setStatus("اختر السورة أولاً", "error");
         return;
     }
     startTilawa();
@@ -1471,7 +1010,7 @@ btnTilawa.addEventListener("click", () => {
 
 btnTasmi.addEventListener("click", () => {
     if (!surahSelect.value) {
-        setStatus("اختر السورة أولاً.", "error");
+        setStatus("اختر السورة أولاً", "error");
         return;
     }
     startTasmi();
@@ -1480,20 +1019,16 @@ btnTasmi.addEventListener("click", () => {
 btnStop.addEventListener("click", () => {
     mode = "idle";
     stopCurrentAudio();
-    stopRecognition();
+    if (recognition) recognition.stop();
     cancelCountdown();
     enableMainControls(true);
     ayahInput.disabled = false;
-    isPlayingAudio = false;
-    audioEndTime = 0;
-    shouldProcessRecognition = false;
 
     listeningDot.classList.remove("active");
     recognizedBox.classList.remove("active");
-    modeBadge.textContent = "وضع غير مفعّل";
-    modeBadge.className = "mode-badge";
+    modeBadge.textContent = "غير مفعّل";
 
-    setStatus("تم الإيقاف. يمكنك اختيار سورة أو وضع جديد.", "normal");
+    setStatus("تم الإيقاف", "normal");
 });
 
 document.addEventListener("DOMContentLoaded", () => {
